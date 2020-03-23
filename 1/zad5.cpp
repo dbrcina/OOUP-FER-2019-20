@@ -1,5 +1,8 @@
 #include <cstdio>
 
+typedef int (*prvaFun)(void*);
+typedef int (*drugaFun)(void*, int);
+
 class B {
 public:
   virtual int prva()=0;
@@ -13,12 +16,14 @@ public:
 };
 
 void executeMethods(B* pb) {
-	int* vptr =  *(int**)pb;
-	printf("%d\n", ((int (*)()) vptr[0])());
-	printf("%d\n", ((int (*)(int)) vptr[4])(10));
+	unsigned long* vtable =  *(unsigned long**)pb;
+	printf("%d\n", ((prvaFun)vtable[0])(pb));
+	printf("%d\n", ((drugaFun)vtable[1])(pb, 10));
 }
 
 int main(int argc, char const *argv[]) {
-	executeMethods(new D());
+	B* d = new D();
+	executeMethods(d);
+	delete d;
 	return 0;
 }
