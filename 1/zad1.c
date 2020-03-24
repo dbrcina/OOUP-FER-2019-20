@@ -100,9 +100,9 @@ int main(int argc, char const *argv[]) {
   printf("\nCreating 10 dogs using malloc only once\n");
   int size = sizeof(Animal);
   Animal* dogs = createNDogs(10);
-  for (int i = 0, offset = 0; i < 10; i++, offset += size)
-  {
+  for (int i = 0, offset = 0; i < 10; i++, offset += size) {
     printf("%4d.%s\n", (i + 1), (dogs + offset)->name);
   }
-	return 0;
+  free(dogs);
+  return 0;
 }
