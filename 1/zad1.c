@@ -1,66 +1,69 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// define a pointer to the table with virtual functions
 typedef char const* (*PTRFUN)();
+
+// define abstract class Animal
 typedef struct {
-  char* name;
-  PTRFUN* vFuncTable;
+  PTRFUN *vTable;
+  char const *name;
 } Animal;
 
-char const* dogGreet(int a) {
-  return "vau!";
-}
+///////////////////////////////////////////////////
 
-char const* dogMenu(void) {
-  return "kuhanu govedinu";
-}
+// define class Dog
+Animal* createDog(char const *name);
+void constructDog(Animal *animal, char const *name);
+char const* dogGreet(void) { return "vau!"; }
+char const* dogMenu(void) { return "kuhanu govedinu"; }
+PTRFUN dogVTable[2] = {dogGreet, dogMenu};
 
-PTRFUN dogVFuncTable[2] = {dogGreet, dogMenu};
-
-void constructDog(Animal* dog, char* name) {
-  dog->name = name;
-  dog->vFuncTable = dogVFuncTable;
-}
-
-Animal* createDog(char* name) {
-  Animal* dog = (Animal*)malloc(sizeof(Animal));
+Animal* createDog(char const *name) {
+  Animal *dog = (Animal *)malloc(sizeof(Animal));
   constructDog(dog, name);
   return dog;
 }
 
-char const* catGreet(void) {
-  return "mijau!";
+void constructDog(Animal *animal, char const *name) {
+  animal->vTable = dogVTable;
+  animal->name = name;
 }
 
-char const* catMenu(void) {
-  return "konzerviranu tunjevinu";
-}
+///////////////////////////////////////////////////
 
-PTRFUN catVFuncTable[2] = {catGreet, catMenu};
+// define class Cat
+Animal* createCat(char const *name);
+void constructCat(Animal *animal, char const *name);
+char const* catGreet(void) { return "mijau!"; }
+char const* catMenu(void) { return "konzerviranu tunjevinu"; }
+PTRFUN catVTable[2] = {catGreet, catMenu};
 
-void constructCat(Animal* cat, char* name) {
-  cat->name = name;
-  cat->vFuncTable = catVFuncTable;
-}
-
-Animal* createCat(char* name) {
-	Animal* cat = (Animal*)malloc(sizeof(Animal));
-	constructCat(cat, name);
+Animal* createCat(char const *name) {
+  Animal *cat = (Animal *)malloc(sizeof(Animal));
+  constructCat(cat, name);
   return cat;
 }
 
-void animalPrintGreeting(Animal* animal) {
-	printf("%s pozdravlja: %s\n", animal->name, animal->vFuncTable[0]());
+void constructCat(Animal *animal, char const *name) {
+  animal->vTable = catVTable;
+  animal->name = name;
 }
 
-void animalPrintMenu(Animal* animal) {
-	printf("%s voli: %s\n", animal->name, animal->vFuncTable[1]());
+///////////////////////////////////////////////////
+
+void animalPrintGreeting(Animal *animal) {
+  printf("%s pozdravlja: %s\n", animal->name, animal->vTable[0]());
+}
+
+void animalPrintMenu(Animal *animal) {
+  printf("%s voli: %s\n", animal->name, animal->vTable[1]());
 }
 
 void testAnimals(void) {
-  Animal* p1 = createDog("Hamlet");
-  Animal* p2 = createCat("Ofelija");
-  Animal* p3 = createDog("Polonije");
+  Animal *p1 = createDog("Hamlet");
+  Animal *p2 = createCat("Ofelija");
+  Animal *p3 = createDog("Polonije");
 
   animalPrintGreeting(p1);
   animalPrintGreeting(p2);
@@ -70,17 +73,16 @@ void testAnimals(void) {
   animalPrintMenu(p2);
   animalPrintMenu(p3);
 
-  free(p1); 
-  free(p2); 
+  free(p1);
+  free(p2);
   free(p3);
 }
 
 Animal* createNDogs(int n) {
   int size = sizeof(Animal);
   int offset = 0;
-  Animal* dogs = (Animal*)malloc(size * n);
-  for (int i = 0; i < n; ++i)
-  {
+  Animal *dogs = (Animal *)malloc(size * n);
+  for (int i = 0; i < n; ++i) {
     constructDog(dogs + offset, "Pas");
     offset += size;
   }
@@ -89,18 +91,21 @@ Animal* createNDogs(int n) {
 
 int main(int argc, char const *argv[]) {
   printf("Testing on heap\n");
-	testAnimals();
+  testAnimals();
 
   printf("\nTesting on stack\n");
   Animal dog;
   dog.name = "Rex";
-  dog.vFuncTable = dogVFuncTable;
-  printf("%s voli: %s\n", dog.name, dog.vFuncTable[1]());
+  dog.vTable = dogVTable;
+  printf("%s voli: %s\n", dog.name, dog.vTable[1]());
 
-  printf("\nCreating 10 dogs using malloc only once\n");
+  int n;
+  printf("\nEnter number of dogs: ");
+  scanf("%d", &n);
+  printf("\nCreating %d dogs using malloc only once\n", n);
   int size = sizeof(Animal);
-  Animal* dogs = createNDogs(10);
-  for (int i = 0, offset = 0; i < 10; i++, offset += size) {
+  Animal *dogs = createNDogs(n);
+  for (int i = 0, offset = 0; i < n; i++, offset += size) {
     printf("%4d.%s\n", (i + 1), (dogs + offset)->name);
   }
   free(dogs);
