@@ -3,4 +3,4 @@ U zad6.s se nalaze komentari na dijelove strojnog koda. Probao sam se snaći kol
 (1)Metoda main započinje na 155. liniji
 (2)Pretpostavljam da se u 174. liniji zauzima 4 bajta za pointer na razred Derived
 (3)179. linija je poziv konstruktora Derived što vodi do 97. linije
-(4)nadalje mislim da sam kolko tolko dokumentirao
+(4)nadalje mislim da sam kolko tolko dokumentirao u kodu

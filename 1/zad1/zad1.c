@@ -80,11 +80,9 @@ void testAnimals(void) {
 
 Animal* createNDogs(int n) {
   int size = sizeof(Animal);
-  int offset = 0;
   Animal *dogs = (Animal*)malloc(size * n);
-  for (int i = 0; i < n; ++i) {
+  for (int i = 0, offset = 0; i < n; i++, offset += size) {
     constructDog(dogs + offset, "Pas");
-    offset += size;
   }
   return dogs;
 }
@@ -95,9 +93,9 @@ int main(int argc, char const *argv[]) {
 
   printf("\nTesting on stack\n");
   Animal dog;
-  dog.name = "Rex";
-  dog.vTable = dogVTable;
-  printf("%s voli: %s\n", dog.name, dog.vTable[1]());
+  constructDog(&dog, "Rex");
+  animalPrintGreeting(&dog);
+  animalPrintMenu(&dog);
 
   int n;
   printf("\nEnter number of dogs: ");
