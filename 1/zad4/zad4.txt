@@ -1,0 +1,46 @@
+1.
+(1)poc se alocira prije prije poziva funkcije main u 148. liniji sub esp, 32.
+32 zato što se radi o strukturi od 4 bajta, tj. 32 bita.
+(2)*pb se alocira call __Znwj naredbom, tj. _operator new(unsigned int) koja će negdje na heapu zauzeti memoriju i kroz eax registar vratiti neki 32-bitni integer, tj. pointer na tu memoriju.
+Veličina objekta kojeg treba alocirati se zadaje naredbom u 150. liniji, mov DWORD PTR [esp], 8, što i predstavlja sizeof(CoolClass).
+
+2.
+poc će se nalaziti na stogu funkcijskog bloka main, dok se za *pb zauzima određena memorija na heapu i vraća pointer na tu memoriju koji smo objasnili ranije.
+
+3.
+Kompajler ne generira kostruktor razreda PlainOldClass upravo zato što se memorija za poc zauzima na stogu i ne dodjeljuje se dinamički na heapu.
+
+4.
+Obrada konstruktora objekta *pb započinje od linije 107. pa sve do 127. linije kada se događa naredba ret. Dodani su komentari u kod da ne kopiram ovdje.
+
+5.
+(1)poc.set(42)	mov	DWORD PTR [esp], 42
+				mov	ecx, eax
+				call	__ZN13PlainOldClass3setEi	;obična metoda koja je definirana u razredu PlainOldClass - nepolimorfan poziv
+
+(2)pb->set(42)	mov	eax, DWORD PTR [ebp-12]		;u eax spremi adresu objekta tipa CoolClass
+				mov	eax, DWORD PTR [eax]		;adresa vtable objekta u eax
+				mov	edx, DWORD PTR [eax]		;adresa funkcije set(x) u edx
+				mov	eax, DWORD PTR [ebp-12]		;u eax spremi adresu objekta tipa CoolClass
+				mov	DWORD PTR [esp], 42			;pushaj 42 na stog
+				mov	ecx, eax					;u ecx kopiraj adresu objekta
+				call	edx						;pozovi funkciju set - polimorfan poziv
+
+Očigledno je da je nepolimorfan poziv manje zahtjevniji što se tiče broja instrukcija i mogao bi se definirati inline bez korištenja CALL naredbe, dok se polimorfan poziv ne može definirati inline upravo zato što se događa prilikom izvođenja, a nepolimorfan tijekom prevođenja.
+
+6.
+Definicija od linije 187 do 195: 
+__ZTV9CoolClass: ;CoolClass
+	.long	0
+	.long	__ZTI9CoolClass			;_typeinfo for CoolClass
+	.long	__ZN9CoolClass3setEi	;_CoolClass::set(int)
+	.long	__ZN9CoolClass3getEv	;_CoolClass::get()
+	.globl	__ZTV4Base				;_vtable for Base
+	.section	.rdata$_ZTV4Base,"dr"
+	.linkonce same_size
+	.align 4
+
+Inicijalizacija od linije 120 do 122:
+mov	edx, OFFSET FLAT:__ZTV9CoolClass+8 	;pokazivač na vtable CoolClass objekta postavi u edx
+mov	eax, DWORD PTR [ebp-12]				;referencu objekta postavi u eax
+mov	DWORD PTR [eax], edx				;pokazivač na vtable postavi na početak objekta i time završava konstrukcija objekta

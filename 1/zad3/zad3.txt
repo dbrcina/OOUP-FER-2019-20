@@ -1,7 +1,7 @@
 CoolClass:
 -sizeof iznosi 8 jer se razred sastoji od virtualnih funkcija, tj. pointera na tablicu istih te int-a kao članske varijable objekta dotičnog razreda
--s obzirom da pointeri kao i int varijable zauzimaju 4 byte memorije, rješenje je 8
+-s obzirom da pointeri kao i int varijable zauzimaju 4 bajta memorije, rješenje je 8
 
 PlainOldClass:
 -sizeof iznosi 4 jer se razred sastoji samo od int-a kao članske varijable
--naveden funkcije se ne uzimaju kao sizeof razreda jer one nisu fizički prisutne u razredu
+-navedene funkcije se ne uzimaju kao sizeof razreda jer one nisu fizički prisutne u razredu

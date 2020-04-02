@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// define a pointer to the table with virtual functions
+// pointer to the table with virtual functions
 typedef char const* (*PTRFUN)();
 
-// define abstract class Animal
+// class Animal
 typedef struct {
   PTRFUN *vTable;
   char const *name;
@@ -12,7 +12,7 @@ typedef struct {
 
 ///////////////////////////////////////////////////
 
-// define class Dog
+// class Dog
 Animal* createDog(char const *name);
 void constructDog(Animal *animal, char const *name);
 char const* dogGreet(void) { return "vau!"; }
@@ -20,7 +20,7 @@ char const* dogMenu(void) { return "kuhanu govedinu"; }
 PTRFUN dogVTable[2] = {dogGreet, dogMenu};
 
 Animal* createDog(char const *name) {
-  Animal *dog = (Animal *)malloc(sizeof(Animal));
+  Animal *dog = (Animal*)malloc(sizeof(Animal));
   constructDog(dog, name);
   return dog;
 }
@@ -32,7 +32,7 @@ void constructDog(Animal *animal, char const *name) {
 
 ///////////////////////////////////////////////////
 
-// define class Cat
+// class Cat
 Animal* createCat(char const *name);
 void constructCat(Animal *animal, char const *name);
 char const* catGreet(void) { return "mijau!"; }
@@ -40,7 +40,7 @@ char const* catMenu(void) { return "konzerviranu tunjevinu"; }
 PTRFUN catVTable[2] = {catGreet, catMenu};
 
 Animal* createCat(char const *name) {
-  Animal *cat = (Animal *)malloc(sizeof(Animal));
+  Animal *cat = (Animal*)malloc(sizeof(Animal));
   constructCat(cat, name);
   return cat;
 }
@@ -81,7 +81,7 @@ void testAnimals(void) {
 Animal* createNDogs(int n) {
   int size = sizeof(Animal);
   int offset = 0;
-  Animal *dogs = (Animal *)malloc(size * n);
+  Animal *dogs = (Animal*)malloc(size * n);
   for (int i = 0; i < n; ++i) {
     constructDog(dogs + offset, "Pas");
     offset += size;

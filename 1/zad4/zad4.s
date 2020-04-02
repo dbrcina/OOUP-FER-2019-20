@@ -104,22 +104,22 @@ LFE7:
 	.align 2
 	.globl	__ZN9CoolClassC1Ev
 	.def	__ZN9CoolClassC1Ev;	.scl	2;	.type	32;	.endef
-__ZN9CoolClassC1Ev:
+__ZN9CoolClassC1Ev:		;_CoolClass::CoolClass()
 LFB10:
 	.cfi_startproc
-	push	ebp
+	push	ebp 		;pushaj stack-frame pozivajuće fje(main)
 	.cfi_def_cfa_offset 8
 	.cfi_offset 5, -8
-	mov	ebp, esp
+	mov	ebp, esp 		;omogućeno manipuliranje stogom za trenutni stack-frame
 	.cfi_def_cfa_register 5
 	sub	esp, 24
-	mov	DWORD PTR [ebp-12], ecx
-	mov	eax, DWORD PTR [ebp-12]
-	mov	ecx, eax
-	call	__ZN4BaseC2Ev
-	mov	edx, OFFSET FLAT:__ZTV9CoolClass+8
-	mov	eax, DWORD PTR [ebp-12]
-	mov	DWORD PTR [eax], edx
+	mov	DWORD PTR [ebp-12], ecx ;u ecx se nalazi referenca na alocirani objekt, spremi ju na [ebp-12]
+	mov	eax, DWORD PTR [ebp-12] ;postavi referencu objeka u eax
+	mov	ecx, eax	;kopiraj u ecx jer se ecx šalje kao argument funkcije
+	call	__ZN4BaseC2Ev	;poziv Base() konstruktora
+	mov	edx, OFFSET FLAT:__ZTV9CoolClass+8 ;pokazivač na vtable CoolClass objekta postavi u edx
+	mov	eax, DWORD PTR [ebp-12]	;referencu objekta postavi u eax
+	mov	DWORD PTR [eax], edx	;pokazivač na vtable postavi na početak objekta i time završava konstrukcija objekta
 	nop
 	leave
 	.cfi_restore 5

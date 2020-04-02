@@ -1,0 +1,16 @@
+Slika dijagram.jpg je okvirna skica dijagrama razreda drugog zadatka. UnaryFunction po hijerarhiji predstavlja Base razred iz kojeg onda Square i Linear nastaju nasljeđivanjem. Dijagram sam radio na temelju programskog jezika Java te nisam navodio pointere u svakom naslijeđenom razredu već sam uzeo u obzir da i razred Square i razred Linear imaju pristup pointeru vtable Base razreda. Također nisam dodatno crtao tablice virtualnih metoda za svaki razred već sam to mislio opisati ovdje.
+
+Tablica virtualnih metoda u našem slučaju ima dva retka;
+	(1) pointer na metodu valueAt,
+	(2)	pointer na metodu negativeValueAt.
+
+Na tim mjestima će se za svaki razred nalaziti pointeri koji će pokazivati za različite implementacije istih metoda, pa će tako u slučaju razreda Square tablica izgledati;
+	(1) pointer na metodu valueAtSquare,
+	(2) pointer na metodu negativeValueAt,
+dok će u slučaju razreda Linear izgledati;
+	(1) pointer na metodu valueAtLinear,
+	(2)	pointer na metodu negativeValueAt.
+
+Valja primjetiti da tablice oba razreda koriste istu negativeValueAt metodu što je i dobro s obzirom da je implementirana na način da vraća negativnu vrijednost metode valueAt čiji pointer već postoji u prvom redu tablice. Također, metoda negativeValueAt je implementirana već u UnaryFunction razred, no s obzirom da je virtualna mogu se ponuditi i naknadne implementacije iste.
+
+Na dijagramu je to malo izostavljeno, ali treba imati na umu da sizeof svakog razreda uzima sizeof(UnaryFunction) + dodatne varijable razreda, stoga je sizeof(Square) jednak sizeof(UnaryFunction), dok je sizeof(Linear) za 16 bajtova veći od sizeof(UnaryFunction) radi dva double koeficijenta, a znamo da double zauzima 8 bajtova u memoriji.
