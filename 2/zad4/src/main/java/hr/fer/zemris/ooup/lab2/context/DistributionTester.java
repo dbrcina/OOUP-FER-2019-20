@@ -6,6 +6,7 @@ import hr.fer.zemris.ooup.lab2.strategy.PercentileCalc;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.StringJoiner;
 
 public final class DistributionTester {
 
@@ -22,11 +23,9 @@ public final class DistributionTester {
 
     public void startTester() {
         List<Integer> integers = generator.generate();
-        StringBuilder sb = new StringBuilder();
-        sb.append("Integers: ");
-        integers.forEach(i -> sb.append(i).append(", "));
-        sb.setLength(sb.length() - 2);
-        wr.println(sb.toString());
+        StringJoiner sj = new StringJoiner(", ");
+        integers.forEach(i -> sj.add(i.toString()));
+        wr.println("Integers: " + sj.toString());
 
         for (int i = 10; i <= 90; i += 10) {
             wr.println(i + ". percentile: " + percentileCalc.calculate(i, integers));
