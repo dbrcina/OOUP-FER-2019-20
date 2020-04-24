@@ -10,6 +10,7 @@ public class Demo {
         s.set("A3", "A1+A2");
         s.set("B1", "A1+A3");
         s.set("E2", "A2+B1");
+        s.set("D3", "A1+A3+B5");
         System.out.println(s);
 
         System.out.println("----------------------");
@@ -36,6 +37,7 @@ public class Demo {
 
         s.set("E2", "10");
         s.set("A2", "6");
+        s.set("B5", "6");
         System.out.println(s);
     }
 

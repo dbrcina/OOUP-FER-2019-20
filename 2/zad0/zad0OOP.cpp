@@ -65,8 +65,7 @@ void moveShapes(const std::list<Shape*>& fig) {
 }
 
 int main() {
-	std::list<Shape*> l = {
-		new Circle, new Square, new Square, new Circle, new Rhomb};
+	std::list<Shape*> l = {new Circle, new Square, new Square, new Circle, new Rhomb};
 	drawShapes(l);
 	moveShapes(l);
 	return 0;

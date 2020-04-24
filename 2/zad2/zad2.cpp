@@ -4,12 +4,12 @@
 #include <set>
 
 template <typename Iterator, typename Predicate>
-Iterator mymax(Iterator cur, Iterator last, Predicate pred) {
-	Iterator max = cur;
-	cur++;
-	while (cur != last) {
-		if (pred(*cur, *max) == 1) max = cur;
-		cur++;
+Iterator mymax(Iterator first, Iterator last, Predicate pred) {
+	Iterator max = first;
+	first++;
+	while (first != last) {
+		if (pred(*first, *max) == 1) max = first;
+		first++;
 	}
 	return max;
 }
@@ -26,12 +26,12 @@ int gt_str(const char *s1, const char *s2) {
 
 int main() {
 	int arr_int[] = {1, 3, 5, 7, 4, 6, 9, 2, 0};
-	int n_arr_int = sizeof(arr_int) / sizeof(*arr_int);
+	int n_arr_int = sizeof(arr_int) / sizeof(int);
 	std::vector<int> vec_int(arr_int, arr_int + n_arr_int);
 	std::set<int> set_int(vec_int.begin(), vec_int.end());
 
 	char arr_char[] = "Suncana strana ulice";
-	int n_arr_char = sizeof(arr_char) / sizeof(*arr_char);
+	int n_arr_char = sizeof(arr_char) / sizeof(char);
 	std::vector<char> vec_char(arr_char, arr_char + n_arr_char);
 	std::set<char> set_char(vec_char.begin(), vec_char.end());
 
@@ -39,7 +39,7 @@ int main() {
 		"Gle", "malu", "vocku", "poslije", "kise",
    		"Puna", "je", "kapi", "pa", "ih", "njise"
 	};
-	int n_arr_str = sizeof(arr_str) / sizeof(*arr_str);
+	int n_arr_str = sizeof(arr_str) / sizeof(char*);
 	std::vector<const char*> vec_str(arr_str, arr_str + n_arr_str);
 	std::set<const char*> set_str(vec_str.begin(), vec_str.end());
 

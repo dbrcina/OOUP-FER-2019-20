@@ -12,8 +12,8 @@ public class Demo {
 
     public static void main(String[] args) throws Exception {
         String file = "src/main/resources/integers.txt";
-        //IzvorBrojeva source = new DatotecniIzvor(file);
-        IzvorBrojeva source = new TipkovnickiIzvor();
+        IzvorBrojeva source = new DatotecniIzvor(file);
+        //IzvorBrojeva source = new TipkovnickiIzvor();
         SlijedBrojeva slijedBrojeva = new SlijedBrojeva(source);
         new DatumZapis(slijedBrojeva);
         new Suma(slijedBrojeva);

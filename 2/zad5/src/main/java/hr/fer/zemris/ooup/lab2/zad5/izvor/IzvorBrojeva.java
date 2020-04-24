@@ -1,27 +1,20 @@
 package hr.fer.zemris.ooup.lab2.zad5.izvor;
 
 import java.io.InputStream;
-import java.util.Scanner;
 
 public abstract class IzvorBrojeva implements AutoCloseable {
 
-    private final Scanner sc;
+    protected final InputStream is;
 
-    public IzvorBrojeva(InputStream is) {
-        this.sc = new Scanner(is);
+    protected IzvorBrojeva(InputStream is) {
+        this.is = is;
     }
 
-    public int nextInt() {
-        try {
-            return sc.nextInt();
-        } catch (Exception e) {
-            return -1;
-        }
-    }
+    public abstract int nextInt();
 
     @Override
     public void close() throws Exception {
-        sc.close();
+        is.close();
         System.out.println("Izvor brojeva je zatvoren.");
     }
 
