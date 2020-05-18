@@ -19,6 +19,7 @@ public class JNotepad extends JFrame {
         pack();
         setLocationRelativeTo(null);
 
+        // timer for making cursor blink
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             public void run() {
@@ -28,6 +29,7 @@ public class JNotepad extends JFrame {
         }, 1_000, 500);
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
+                e.getWindow().dispose();
                 timer.cancel();
                 System.exit(0);
             }
