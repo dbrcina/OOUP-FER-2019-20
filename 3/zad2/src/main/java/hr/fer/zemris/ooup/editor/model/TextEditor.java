@@ -61,6 +61,11 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
                         selectionRange.setEnd(new Location());
                     } else if (code == VK_DELETE) model.deleteAfter();
                     else model.deleteBefore();
+                } else {
+                    model.setSelectionRange(selectionRange);
+                    selectionRange.setStart(new Location());
+                    selectionRange.setEnd(new Location());
+                    model.insert(e.getKeyChar());
                 }
             }
 
@@ -86,7 +91,9 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
 
     @Override
     public void updateText() {
-        model.setSelectionRange(new LocationRange());
+        if (selectionRange.equals(new LocationRange())) {
+            model.setSelectionRange(new LocationRange());
+        }
         SwingUtilities.invokeLater(this::repaint);
     }
 

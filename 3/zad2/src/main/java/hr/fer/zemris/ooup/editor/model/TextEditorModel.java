@@ -9,6 +9,8 @@ import java.util.function.Consumer;
 
 public class TextEditorModel {
 
+    private static final String LINE_SEPARATOR = "\\r?\\n";
+
     /* List of lines of text */
     private final List<String> lines = new CopyOnWriteArrayList<>();
     /* --------------------- */
@@ -28,7 +30,7 @@ public class TextEditorModel {
 
     /* Constructor */
     public TextEditorModel(String text) {
-        lines.addAll(Arrays.asList(text.split("\\r?\\n")));
+        lines.addAll(Arrays.asList(text.split(LINE_SEPARATOR)));
     }
     /* ----------- */
 
@@ -107,6 +109,42 @@ public class TextEditorModel {
     /* ################################################ */
 
     /* Methods used for text manipulation */
+    public void insert(char c) {
+        insert(new char[]{c});
+    }
+
+    public void insert(String text) {
+        insert(text.toCharArray());
+    }
+
+    private void insert(char[] data) {
+        if (!selectionRange.equals(new LocationRange())) {
+            deleteRange(selectionRange, false);
+        }
+        int start = 0;
+        int row = cursorLocation.getRow();
+        int column = cursorLocation.getColumn();
+        String line = lines.get(row);
+        for (int i = 0; i < data.length; i++) {
+            char c = data[i];
+            if (c == '\n') {
+                lines.set(row, line.substring(0, column + 1) + String.valueOf(data, start, i - start));
+                row++;
+                lines.add(row, line.substring(column + 1));
+                column = -1;
+                cursorLocation.setRow(row);
+                cursorLocation.setColumn(column);
+                start++;
+            }
+        }
+        String newChar = String.valueOf(data, start, data.length - start);
+        if (!newChar.isEmpty()) {
+            lines.set(row, line.substring(0, column + 1) + newChar + line.substring(column + 1));
+            cursorLocation.setColumn(column + 1);
+        }
+        notifyTextObservers(TextObserver::updateText);
+    }
+
     public void deleteAfter() {
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
@@ -139,6 +177,10 @@ public class TextEditorModel {
     }
 
     public void deleteRange(LocationRange range) {
+        deleteRange(range, true);
+    }
+
+    private void deleteRange(LocationRange range, boolean notify) {
         Location start = range.getStart();
         Location end = range.getEnd();
         int rowStart = start.getRow();
@@ -177,7 +219,7 @@ public class TextEditorModel {
         }
         cursorLocation.setRow(rowStart);
         cursorLocation.setColumn(columnStart);
-        notifyTextObservers(TextObserver::updateText);
+        if (notify) notifyTextObservers(TextObserver::updateText);
     }
 
     public LocationRange getSelectionRange() {
