@@ -1,5 +1,7 @@
 package hr.fer.zemris.ooup.editor.model;
 
+import java.util.Objects;
+
 public class LocationRange {
 
     private Location start;
@@ -15,23 +17,42 @@ public class LocationRange {
     }
 
     public Location getStart() {
-        return start;
+        return start.copy();
     }
 
     public void setStart(Location start) {
-        this.start = start;
+        this.start = start.copy();
     }
 
     public Location getEnd() {
-        return end;
+        return end.copy();
     }
 
     public void setEnd(Location end) {
-        this.end = end;
+        this.end = end.copy();
     }
 
     public LocationRange copy() {
         return new LocationRange(start, end);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Start:%s, End:%s", start, end);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        if (!(other instanceof LocationRange)) return false;
+        LocationRange that = (LocationRange) other;
+        return start.equals(that.start) &&
+                end.equals(that.end);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(start, end);
     }
 
 }

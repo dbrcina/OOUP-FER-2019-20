@@ -4,6 +4,6 @@ import hr.fer.zemris.ooup.editor.model.Location;
 
 public interface CursorObserver {
 
-    void updateCursorLocation(Location loc);
+    void updateCursorLocation(Location location);
 
 }

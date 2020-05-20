@@ -1,56 +1,108 @@
 package hr.fer.zemris.ooup.editor.model;
 
 import hr.fer.zemris.ooup.editor.observer.CursorObserver;
+import hr.fer.zemris.ooup.editor.observer.TextObserver;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.Iterator;
+import java.util.List;
 
-public class TextEditor extends JComponent implements CursorObserver {
+import static java.awt.event.KeyEvent.*;
+
+public class TextEditor extends JComponent implements CursorObserver, TextObserver {
 
     private static final long serialVersionUID = 3669353336390971206L;
+
     private static final int WIDTH = 600;
     private static final int HEIGHT = 600;
     private static final int LEFT_MARGIN = 3;
-    private static final float FONT_SIZE = 20.0f;
+    private static final Font defaultFont = new Font("Monospaced", Font.PLAIN, 20);
+    private static final List<Integer> cursorKeyCodes = List.of(VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN);
+    private static final List<Integer> deletionKeyCodes = List.of(VK_DELETE, VK_BACK_SPACE);
 
-    private final TextEditorModel model = new TextEditorModel(this,
+    private final TextEditorModel model = new TextEditorModel(
             "Ovo je tekst\nkoji se nalazi\nu više r.");
-    private boolean showCursor = true;
     private boolean initialRun = true;
+    private boolean blinkCursor = true;
+    private boolean showCursorWithoutBlinking = false;
+    private boolean shiftPressed = false;
+    private final LocationRange selectionRange = new LocationRange();
 
     public TextEditor() {
         setPreferredSize(new Dimension(WIDTH - LEFT_MARGIN, HEIGHT - LEFT_MARGIN));
         setBorder(BorderFactory.createEmptyBorder(0, LEFT_MARGIN, 0, 0));
         setFocusable(true);
-        model.attach(this);
+        setFont(defaultFont);
+        model.attachCursorObserver(this);
+        model.attachTextObserver(this);
+        initKeyListener();
+    }
+
+    private void initKeyListener() {
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
                 int code = e.getKeyCode();
-                if (code == KeyEvent.VK_LEFT) model.moveCursorLeft();
-                else if (code == KeyEvent.VK_RIGHT) model.moveCursorRight();
-                else if (code == KeyEvent.VK_UP) model.moveCursorUp();
-                else if (code == KeyEvent.VK_DOWN) model.moveCursorDown();
+                if (code == VK_SHIFT) {
+                    selectionRange.setStart(model.getCursorLocation());
+                    shiftPressed = true;
+                } else if (cursorKeyCodes.contains(code)) {
+                    showCursorWithoutBlinking = true;
+                    if (code == VK_LEFT) model.moveCursorLeft();
+                    else if (code == VK_RIGHT) model.moveCursorRight();
+                    else if (code == VK_UP) model.moveCursorUp();
+                    else model.moveCursorDown();
+                } else if (deletionKeyCodes.contains(code)) {
+                    if (!model.getSelectionRange().equals(new LocationRange())) {
+                        model.deleteRange(selectionRange);
+                        selectionRange.setStart(new Location());
+                        selectionRange.setEnd(new Location());
+                    } else if (code == VK_DELETE) model.deleteAfter();
+                    else model.deleteBefore();
+                }
+            }
+
+            public void keyReleased(KeyEvent e) {
+                int code = e.getKeyCode();
+                if (code == VK_SHIFT) shiftPressed = false;
+                else if (cursorKeyCodes.contains(code)) showCursorWithoutBlinking = false;
             }
         });
     }
 
     @Override
-    public void updateCursorLocation(Location loc) {
-        model.setCursorLocation(loc);
+    public void updateCursorLocation(Location location) {
+        model.setCursorLocation(location);
+        if (shiftPressed) {
+            selectionRange.setEnd(model.getCursorLocation());
+            model.setSelectionRange(selectionRange);
+        } else {
+            model.setSelectionRange(new LocationRange());
+        }
         SwingUtilities.invokeLater(this::repaint);
     }
 
+    @Override
+    public void updateText() {
+        model.setSelectionRange(new LocationRange());
+        SwingUtilities.invokeLater(this::repaint);
+    }
+
+    public void toggleBlinkCursor() {
+        blinkCursor = !blinkCursor;
+    }
+
+    /* ############################################ */
+
+    /* Next block of code is used for panting the component */
     @Override
     protected void paintComponent(Graphics g) {
         // clear background
         g.clearRect(0, 0, getWidth() + LEFT_MARGIN, getHeight() + LEFT_MARGIN);
         // transform graphics
         g = g.create(LEFT_MARGIN, 0, getWidth(), getHeight());
-        // make font size bigger
-        g.setFont(g.getFont().deriveFont(FONT_SIZE));
         FontMetrics metrics = g.getFontMetrics();
         // display text on the screen
         displayText(g, metrics);
@@ -58,31 +110,82 @@ public class TextEditor extends JComponent implements CursorObserver {
         displayCursor(g, metrics);
     }
 
-    public void toggleCursor() {
-        showCursor = !showCursor;
-    }
-
     private void displayText(Graphics g, FontMetrics metrics) {
         Iterator<String> allLinesIterator = model.allLines();
-        int y = metrics.getHeight();
+        int y = 0;
+        int row = 0;
+        LocationRange selectionRange = model.getSelectionRange();
+        Location start = selectionRange.getStart();
+        Location end = selectionRange.getEnd();
         while (allLinesIterator.hasNext()) {
             String line = allLinesIterator.next();
-            g.drawString(line, 0, y);
-            if (initialRun) {
-                int lineWidth = metrics.stringWidth(line);
-                model.setCursorLocation(new Location(lineWidth, y + metrics.getDescent()));
+            if (!selectionRange.equals(new LocationRange())) {
+                drawSelection(g, metrics, line, start, end, row, y + metrics.getDescent());
             }
             y += metrics.getHeight();
+            g.drawString(line, 0, y);
+            row++;
         }
-        if (initialRun) initialRun = false;
+        if (initialRun) {
+            initialRun = false;
+            row -= 1;
+            int column = model.getLines().get(row).length() - 1;
+            model.setCursorLocation(new Location(row, column));
+        }
+    }
+
+    private void drawSelection(
+            Graphics g, FontMetrics metrics, String line, Location start, Location end, int row, int y) {
+        int columnStart = 0;
+        int columnEnd = 0;
+        if (start.getRow() == row && end.getRow() == row) {
+            columnStart = start.getColumn();
+            columnEnd = end.getColumn();
+        } else if (start.getRow() == row) {
+            columnStart = start.getColumn();
+            if (row > end.getRow()) {
+                columnEnd = -1;
+            } else {
+                columnEnd = line.length() - 1;
+            }
+        } else if (end.getRow() == row) {
+            columnStart = end.getColumn();
+            if (row > start.getRow()) {
+                columnEnd = -1;
+            } else {
+                columnEnd = line.length() - 1;
+            }
+        } else if (row > start.getRow() && row < end.getRow()
+                || row < start.getRow() && row > end.getRow()) {
+            columnStart = -1;
+            columnEnd = line.length() - 1;
+        }
+        if (columnStart > columnEnd) {
+            int temp = columnStart;
+            columnStart = columnEnd;
+            columnEnd = temp;
+        }
+        int x = metrics.stringWidth(line.substring(0, columnStart + 1));
+        int width = metrics.stringWidth(line.substring(columnStart + 1, columnEnd + 1));
+        int height = metrics.getHeight();
+        g.setColor(Color.LIGHT_GRAY);
+        g.fillRect(x, y, width, height);
+        g.setColor(Color.BLACK);
     }
 
     private void displayCursor(Graphics g, FontMetrics metrics) {
-        if (!showCursor) return;
+        if (!showCursorWithoutBlinking) {
+            if (!blinkCursor) return;
+        }
+        List<String> lines = model.getLines();
         model.setCursorSize(metrics.getHeight());
         Location cursorLocation = model.getCursorLocation();
-        g.drawLine(cursorLocation.getX(), cursorLocation.getY() - model.getCursorSize(),
-                cursorLocation.getX(), cursorLocation.getY());
+        // map rows and columns to the screen coordinates
+        int row = cursorLocation.getRow();
+        int x1 = metrics.stringWidth(lines.get(row).substring(0, cursorLocation.getColumn() + 1));
+        int y1 = (cursorLocation.getRow() + 1) * metrics.getHeight() + metrics.getDescent();
+        int y2 = y1 - model.getCursorSize();
+        g.drawLine(x1, y1, x1, y2);
     }
 
 }

@@ -23,7 +23,7 @@ public class JNotepad extends JFrame {
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
             public void run() {
-                editor.toggleCursor();
+                editor.toggleBlinkCursor();
                 SwingUtilities.invokeLater(editor::repaint);
             }
         }, 1_000, 500);
