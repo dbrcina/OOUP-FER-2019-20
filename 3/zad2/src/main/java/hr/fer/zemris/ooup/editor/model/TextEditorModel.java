@@ -134,13 +134,13 @@ public class TextEditorModel {
                 column = -1;
                 cursorLocation.setRow(row);
                 cursorLocation.setColumn(column);
-                start++;
+                start += i + 1;
             }
         }
         String newChar = String.valueOf(data, start, data.length - start);
         if (!newChar.isEmpty()) {
-            lines.set(row, line.substring(0, column + 1) + newChar + line.substring(column + 1));
-            cursorLocation.setColumn(column + 1);
+            lines.set(row, line.substring(0, column + 1) + newChar);
+            cursorLocation.setColumn(column + newChar.length());
         }
         notifyTextObservers(TextObserver::updateText);
     }
@@ -176,11 +176,17 @@ public class TextEditorModel {
         notifyTextObservers(TextObserver::updateText);
     }
 
-    public void deleteRange(LocationRange range) {
-        deleteRange(range, true);
+    public List<String> deleteRange(LocationRange range) {
+        return deleteRange(range, true);
     }
 
-    private void deleteRange(LocationRange range, boolean notify) {
+    private List<String> deleteRange(LocationRange range, boolean notify) {
+        List<String> selected = selectedText(range, true);
+        if (notify) notifyTextObservers(TextObserver::updateText);
+        return selected;
+    }
+
+    public List<String> selectedText(LocationRange range, boolean remove) {
         Location start = range.getStart();
         Location end = range.getEnd();
         int rowStart = start.getRow();
@@ -197,29 +203,41 @@ public class TextEditorModel {
             columnStart = columnEnd;
             columnEnd = temp;
         }
+        List<String> selected = new ArrayList<>();
         if (rowStart == rowEnd) {
             String line = lines.get(rowStart);
-            lines.set(rowStart, line.substring(0, columnStart + 1) + line.substring(columnEnd + 1));
+            if (remove)
+                lines.set(rowStart, line.substring(0, columnStart + 1) + line.substring(columnEnd + 1));
+            selected.add(line.substring(columnStart + 1, columnEnd + 1));
         } else {
             List<Integer> rows = new ArrayList<>();
             for (int row = rowStart; row <= rowEnd; row++) {
                 String line = lines.get(row);
                 if (row == rowStart) {
-                    lines.set(row, line.substring(0, columnStart + 1));
+                    if (remove)
+                        lines.set(row, line.substring(0, columnStart + 1));
+                    selected.add(line.substring(columnStart + 1));
+                    if (lines.get(row).isEmpty()) rows.add(row);
                 } else if (row == rowEnd) {
-                    lines.set(row, line.substring(columnEnd + 1));
+                    if (remove)
+                        lines.set(row, line.substring(columnEnd + 1));
+                    selected.add(line.substring(0, columnEnd + 1));
                     if (lines.get(row).isEmpty()) rows.add(row);
                 } else {
                     rows.add(row);
+                    selected.add(line);
                 }
             }
-            for (int i = rows.size() - 1; i >= 0; i--) {
-                lines.remove(rows.get(i).intValue());
+            if (remove) {
+                for (int i = rows.size() - 1; i >= 0; i--) {
+                    int row = rows.get(i);
+                    lines.remove(row);
+                }
             }
         }
         cursorLocation.setRow(rowStart);
         cursorLocation.setColumn(columnStart);
-        if (notify) notifyTextObservers(TextObserver::updateText);
+        return selected;
     }
 
     public LocationRange getSelectionRange() {

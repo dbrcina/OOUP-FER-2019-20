@@ -29,7 +29,9 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
     private boolean blinkCursor = true;
     private boolean showCursorWithoutBlinking = false;
     private boolean shiftPressed = false;
+    private boolean controlPressed = false;
     private final LocationRange selectionRange = new LocationRange();
+    private final ClipboardStack<String> clipboard = new ClipboardStack<>();
 
     public TextEditor() {
         setPreferredSize(new Dimension(WIDTH - LEFT_MARGIN, HEIGHT - LEFT_MARGIN));
@@ -48,6 +50,8 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
                 if (code == VK_SHIFT) {
                     selectionRange.setStart(model.getCursorLocation());
                     shiftPressed = true;
+                } else if (code == VK_CONTROL) {
+                    controlPressed = true;
                 } else if (cursorKeyCodes.contains(code)) {
                     showCursorWithoutBlinking = true;
                     if (code == VK_LEFT) model.moveCursorLeft();
@@ -56,12 +60,40 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
                     else model.moveCursorDown();
                 } else if (deletionKeyCodes.contains(code)) {
                     if (!model.getSelectionRange().equals(new LocationRange())) {
-                        model.deleteRange(selectionRange);
+                        LocationRange r = selectionRange.copy();
                         selectionRange.setStart(new Location());
                         selectionRange.setEnd(new Location());
+                        model.deleteRange(r);
                     } else if (code == VK_DELETE) model.deleteAfter();
                     else model.deleteBefore();
+                } else if (code == VK_C && controlPressed) {
+                    if (!selectionRange.equals(new LocationRange())) {
+                        LocationRange r = selectionRange.copy();
+                        selectionRange.setStart(new Location());
+                        selectionRange.setEnd(new Location());
+                        List<String> selected = model.selectedText(r, false);
+                        StringBuilder sb = new StringBuilder();
+                        selected.forEach(s -> sb.append(s).append("\n"));
+                        sb.setLength(sb.length() - 1);
+                        clipboard.push(sb.toString());
+                    }
+                } else if (code == VK_X && controlPressed) {
+                    if (!selectionRange.equals(new LocationRange())) {
+                        LocationRange r = selectionRange.copy();
+                        selectionRange.setStart(new Location());
+                        selectionRange.setEnd(new Location());
+                        List<String> selected = model.deleteRange(r);
+                        StringBuilder sb = new StringBuilder();
+                        selected.forEach(s -> sb.append(s).append("\n"));
+                        sb.setLength(sb.length() - 1);
+                        clipboard.push(sb.toString());
+                    }
+                } else if (code == VK_V && controlPressed) {
+                    if (!clipboard.isEmpty()) {
+                        model.insert(clipboard.peek());
+                    }
                 } else {
+                    if (code == VK_ENTER) showCursorWithoutBlinking = true;
                     model.setSelectionRange(selectionRange);
                     selectionRange.setStart(new Location());
                     selectionRange.setEnd(new Location());
@@ -72,7 +104,9 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
             public void keyReleased(KeyEvent e) {
                 int code = e.getKeyCode();
                 if (code == VK_SHIFT) shiftPressed = false;
-                else if (cursorKeyCodes.contains(code)) showCursorWithoutBlinking = false;
+                else if (code == VK_CONTROL) controlPressed = false;
+                else if (cursorKeyCodes.contains(code) || code == VK_ENTER)
+                    showCursorWithoutBlinking = false;
             }
         });
     }
