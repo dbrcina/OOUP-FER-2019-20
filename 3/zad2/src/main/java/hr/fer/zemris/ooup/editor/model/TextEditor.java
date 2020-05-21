@@ -2,6 +2,7 @@ package hr.fer.zemris.ooup.editor.model;
 
 import hr.fer.zemris.ooup.editor.observer.CursorObserver;
 import hr.fer.zemris.ooup.editor.observer.TextObserver;
+import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -157,6 +158,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         selectionRange.setEnd(new Location());
         model.setLines(lines);
         clipboard.clear();
+        UndoManager.getInstance().clear();
     }
 
     public void save(Path file) throws IOException {

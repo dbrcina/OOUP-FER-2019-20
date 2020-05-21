@@ -1,6 +1,8 @@
 package hr.fer.zemris.ooup.editor;
 
 import hr.fer.zemris.ooup.editor.model.TextEditor;
+import hr.fer.zemris.ooup.editor.observer.UndoManagerObserver;
+import hr.fer.zemris.ooup.editor.observer.UndoManagerState;
 import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import javax.swing.*;
@@ -50,22 +52,15 @@ public class JNotepad extends JFrame {
     }
 
     private void initActions() {
-        openAction.putValue(Action.NAME, "Open");
-        openAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control O"));
-        saveAction.putValue(Action.NAME, "Save");
-        saveAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control S"));
-        exitAction.putValue(Action.NAME, "Exit");
-        exitAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control W"));
-        undoAction.putValue(Action.NAME, "Undo");
-        undoAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Z"));
-        redoAction.putValue(Action.NAME, "Redo");
-        redoAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Y"));
         cutAction.putValue(Action.NAME, "Cut");
         cutAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control X"));
+        cutAction.setEnabled(false);
         copyAction.putValue(Action.NAME, "Copy");
         copyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control C"));
+        copyAction.setEnabled(false);
         pasteAction.putValue(Action.NAME, "Paste");
         pasteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
+        pasteAction.setEnabled(false);
         pasteAndTakeAction.putValue(Action.NAME, "Paste and Take");
         pasteAndTakeAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control shift V"));
     }
@@ -117,36 +112,66 @@ public class JNotepad extends JFrame {
         return tb;
     }
 
-    private final Action openAction = new AbstractAction() {
+    private final Action openAction = new OpenAction(this, editor);
+
+    private final Action saveAction = new SaveAction(this, editor);
+
+    private final Action exitAction = new ExitAction(this, timer);
+
+    private final Action undoAction = new UndoAction();
+
+    private final Action redoAction = new RedoAction();
+
+    private static class OpenAction extends AbstractAction {
+        private final JFrame frame;
+        private final TextEditor editor;
+
+        private OpenAction(JFrame frame, TextEditor editor) {
+            this.frame = frame;
+            this.editor = editor;
+            putValue(Action.NAME, "Open");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control O"));
+        }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             JFileChooser jfc = new JFileChooser();
             jfc.setDialogTitle("Open");
-            if (jfc.showOpenDialog(JNotepad.this) != JFileChooser.APPROVE_OPTION) {
+            if (jfc.showOpenDialog(frame) != JFileChooser.APPROVE_OPTION) {
                 return;
             }
             Path filePath = jfc.getSelectedFile().toPath();
             try {
                 List<String> lines = Files.readAllLines(filePath);
                 editor.reset(lines);
-                SwingUtilities.invokeLater(editor::repaint);
             } catch (IOException ioException) {
-                jfc.showDialog(JNotepad.this, "Error occurred while reading from a file");
+                jfc.showDialog(frame, "Error occurred while reading from a file");
             }
         }
-    };
+    }
 
-    private final Action saveAction = new AbstractAction() {
+    private static class SaveAction extends AbstractAction {
+        private final JFrame frame;
+        private final TextEditor editor;
+
+        private SaveAction(JFrame frame, TextEditor editor) {
+            this.frame = frame;
+            this.editor = editor;
+            putValue(Action.NAME, "Save");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control S"));
+        }
+
+        @Override
         public void actionPerformed(ActionEvent e) {
             JFileChooser jfc = new JFileChooser();
             jfc.setDialogTitle("Save");
-            if (jfc.showSaveDialog(JNotepad.this) != JFileChooser.APPROVE_OPTION) {
+            if (jfc.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) {
                 return;
             }
             Path destination = jfc.getSelectedFile().toPath();
             if (Files.exists(destination)) {
                 int dialogResult = JOptionPane.showConfirmDialog(
-                        JNotepad.this, "Do you want to overwrite?", "Save",
+                        frame, "Do you want to overwrite?", "Save",
                         JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                 if (dialogResult != JOptionPane.YES_OPTION) {
                     return;
@@ -155,30 +180,70 @@ public class JNotepad extends JFrame {
             try {
                 editor.save(destination);
             } catch (IOException ioException) {
-                jfc.showDialog(JNotepad.this, "Error occurred while writing to a file");
+                jfc.showDialog(frame, "Error occurred while writing to a file");
             }
         }
-    };
+    }
 
-    private final Action exitAction = new AbstractAction() {
+    private static class ExitAction extends AbstractAction {
+        private final JFrame frame;
+        private final Timer timer;
+
+        private ExitAction(JFrame frame, Timer timer) {
+            this.frame = frame;
+            this.timer = timer;
+            putValue(Action.NAME, "Exit");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control W"));
+        }
+
+        @Override
         public void actionPerformed(ActionEvent e) {
             timer.cancel();
-            dispose();
-            System.exit(0);
+            frame.dispose();
         }
-    };
+    }
 
-    private final Action undoAction = new AbstractAction() {
-        public void actionPerformed(ActionEvent e) {
-            UndoManager.getInstance().undo();
-        }
-    };
+    private static class UndoAction extends AbstractAction implements UndoManagerObserver {
+        private final UndoManager manager = UndoManager.getInstance();
 
-    private final Action redoAction = new AbstractAction() {
-        public void actionPerformed(ActionEvent e) {
-            UndoManager.getInstance().redo();
+        private UndoAction() {
+            manager.attachUndoStackObserver(this);
+            setEnabled(false);
+            putValue(Action.NAME, "Undo");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Z"));
         }
-    };
+
+        @Override
+        public void updatedUndoManager(UndoManagerState state) {
+            setEnabled(state == UndoManagerState.STACK_NOT_EMPTY);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            manager.undo();
+        }
+    }
+
+    private static class RedoAction extends AbstractAction implements UndoManagerObserver {
+        private final UndoManager manager = UndoManager.getInstance();
+
+        private RedoAction() {
+            manager.attachRedoStackObserver(this);
+            setEnabled(false);
+            putValue(Action.NAME, "Redo");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Y"));
+        }
+
+        @Override
+        public void updatedUndoManager(UndoManagerState state) {
+            setEnabled(state == UndoManagerState.STACK_NOT_EMPTY);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            manager.redo();
+        }
+    }
 
     private final Action cutAction = new AbstractAction() {
         public void actionPerformed(ActionEvent e) {
