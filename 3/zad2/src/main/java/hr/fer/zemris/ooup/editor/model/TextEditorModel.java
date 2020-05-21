@@ -127,7 +127,7 @@ public class TextEditorModel {
     public List<String> insert(char[] data) {
         List<String> deleted = new ArrayList<>();
         if (!selectionRange.equals(new LocationRange())) {
-            deleted.addAll(deleteRange(selectionRange, false));
+            deleted.addAll(selectedText(selectionRange, false));
         }
         int start = 0;
         int row = cursorLocation.getRow();
@@ -198,12 +198,6 @@ public class TextEditorModel {
         manager.push(a);
         notifyTextObservers(TextObserver::updateText);
         return null;
-    }
-
-    private List<String> deleteRange(LocationRange range, boolean notify) {
-        List<String> selected = selectedText(range, true);
-        if (notify) notifyTextObservers(TextObserver::updateText);
-        return selected;
     }
 
     public List<String> selectedText(LocationRange range, boolean remove) {

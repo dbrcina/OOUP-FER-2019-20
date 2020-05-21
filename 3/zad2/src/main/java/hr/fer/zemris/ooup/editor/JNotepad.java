@@ -66,6 +66,8 @@ public class JNotepad extends JFrame {
         copyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control C"));
         pasteAction.putValue(Action.NAME, "Paste");
         pasteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
+        pasteAndTakeAction.putValue(Action.NAME, "Paste and Take");
+        pasteAndTakeAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control shift V"));
     }
 
     private JMenuBar createMenuBar() {
@@ -91,7 +93,7 @@ public class JNotepad extends JFrame {
         menu.add(new JMenuItem(cutAction));
         menu.add(new JMenuItem(copyAction));
         menu.add(new JMenuItem(pasteAction));
-        menu.add(new JMenuItem("Paste and Take"));
+        menu.add(new JMenuItem(pasteAndTakeAction));
         menu.add(new JMenuItem("Delete selection"));
         menu.add(new JMenuItem("Clear document"));
         return menu;
@@ -180,19 +182,26 @@ public class JNotepad extends JFrame {
 
     private final Action cutAction = new AbstractAction() {
         public void actionPerformed(ActionEvent e) {
-
+            editor.cut();
         }
     };
 
     private final Action copyAction = new AbstractAction() {
         public void actionPerformed(ActionEvent e) {
-
+            editor.copy();
         }
     };
 
     private final Action pasteAction = new AbstractAction() {
         public void actionPerformed(ActionEvent e) {
+            editor.paste();
+        }
+    };
 
+    private final Action pasteAndTakeAction = new AbstractAction() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            editor.pasteAndTake();
         }
     };
 
