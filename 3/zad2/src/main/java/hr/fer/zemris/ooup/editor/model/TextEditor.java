@@ -7,6 +7,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 
@@ -23,8 +26,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
     private static final List<Integer> cursorKeyCodes = List.of(VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN);
     private static final List<Integer> deletionKeyCodes = List.of(VK_DELETE, VK_BACK_SPACE);
 
-    private final TextEditorModel model = new TextEditorModel(
-            "Ovo je tekst\nkoji se nalazi\nu više r.");
+    private TextEditorModel model;
     private boolean initialRun = true;
     private boolean blinkCursor = true;
     private boolean showCursorWithoutBlinking = false;
@@ -34,6 +36,11 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
     private final ClipboardStack<String> clipboard = new ClipboardStack<>();
 
     public TextEditor() {
+        this("Ovo je tekst\nkoji se nalazi\nu više r.");
+    }
+
+    public TextEditor(String text) {
+        this.model = new TextEditorModel(text);
         setPreferredSize(new Dimension(WIDTH - LEFT_MARGIN, HEIGHT - LEFT_MARGIN));
         setBorder(BorderFactory.createEmptyBorder(0, LEFT_MARGIN, 0, 0));
         setFocusable(true);
@@ -92,6 +99,10 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
                     if (!clipboard.isEmpty()) {
                         model.insert(clipboard.peek());
                     }
+                } else if (code == VK_Z && controlPressed) {
+                    //manager.undo();
+                } else if (code == VK_Y && controlPressed) {
+                    //manager.redo();
                 } else {
                     if (code == VK_ENTER) showCursorWithoutBlinking = true;
                     model.setSelectionRange(selectionRange);
@@ -135,6 +146,23 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         blinkCursor = !blinkCursor;
     }
 
+    public void reset(List<String> lines) {
+        initialRun = true;
+        blinkCursor = true;
+        showCursorWithoutBlinking = false;
+        shiftPressed = false;
+        controlPressed = false;
+        selectionRange.setStart(new Location());
+        selectionRange.setEnd(new Location());
+        model.setLines(lines);
+        clipboard.clear();
+    }
+
+    public void save(Path file) throws IOException {
+        List<String> lines = model.getLines();
+        Files.write(file, lines);
+    }
+
     /* ############################################ */
 
     /* Next block of code is used for panting the component */
@@ -160,7 +188,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         Location end = selectionRange.getEnd();
         while (allLinesIterator.hasNext()) {
             String line = allLinesIterator.next();
-            if (!selectionRange.equals(new LocationRange())) {
+            if (!selectionRange.equals(new LocationRange()) && !line.isEmpty()) {
                 drawSelection(g, metrics, line, start, end, row, y + metrics.getDescent());
             }
             y += metrics.getHeight();

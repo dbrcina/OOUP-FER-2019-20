@@ -1,7 +1,9 @@
 package hr.fer.zemris.ooup.editor.model;
 
+import hr.fer.zemris.ooup.editor.command.*;
 import hr.fer.zemris.ooup.editor.observer.CursorObserver;
 import hr.fer.zemris.ooup.editor.observer.TextObserver;
+import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -12,7 +14,7 @@ public class TextEditorModel {
     private static final String LINE_SEPARATOR = "\\r?\\n";
 
     /* List of lines of text */
-    private final List<String> lines = new CopyOnWriteArrayList<>();
+    private List<String> lines = new CopyOnWriteArrayList<>();
     /* --------------------- */
 
     /* Cursors data */
@@ -25,6 +27,8 @@ public class TextEditorModel {
     private final List<CursorObserver> cursorObservers = new LinkedList<>();
     private final List<TextObserver> textObservers = new LinkedList<>();
     /* ----------------- */
+
+    private final UndoManager manager = UndoManager.getInstance();
 
     /* ################################################ */
 
@@ -109,17 +113,21 @@ public class TextEditorModel {
     /* ################################################ */
 
     /* Methods used for text manipulation */
-    public void insert(char c) {
-        insert(new char[]{c});
+    public List<String> insert(char c) {
+        return insert(String.valueOf(c));
     }
 
-    public void insert(String text) {
-        insert(text.toCharArray());
+    public List<String> insert(String text) {
+        InsertAction a = new InsertAction(this, text);
+        a.executeDo();
+        manager.push(a);
+        return null;
     }
 
-    private void insert(char[] data) {
+    public List<String> insert(char[] data) {
+        List<String> deleted = new ArrayList<>();
         if (!selectionRange.equals(new LocationRange())) {
-            deleteRange(selectionRange, false);
+            deleted.addAll(deleteRange(selectionRange, false));
         }
         int start = 0;
         int row = cursorLocation.getRow();
@@ -143,10 +151,11 @@ public class TextEditorModel {
             cursorLocation.setColumn(column + newChar.length());
         }
         notifyTextObservers(TextObserver::updateText);
+        return deleted;
     }
 
     public void deleteAfter() {
-        int row = cursorLocation.getRow();
+        /*int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         String line = lines.get(row);
         if (row == lines.size() - 1 && column == line.length() - 1) return;
@@ -154,13 +163,16 @@ public class TextEditorModel {
             lines.set(row, line + lines.remove(row + 1));
         } else {
             lines.set(row, line.substring(0, column + 1) + line.substring(column + 2));
-        }
+        }*/
+        EditAction a = new DeleteAfterAction(this);
+        a.executeDo();
+        manager.push(a);
         notifyTextObservers(TextObserver::updateText);
     }
 
     /* ---------------------------------- */
     public void deleteBefore() {
-        int row = cursorLocation.getRow();
+        /*int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         if (row == 0 && column == -1) return;
         String line = lines.get(row);
@@ -172,12 +184,20 @@ public class TextEditorModel {
         } else {
             lines.set(row, line.substring(0, column) + line.substring(column + 1));
             cursorLocation.setColumn(column - 1);
-        }
+        }*/
+        EditAction a = new DeleteBeforeAction(this);
+        a.executeDo();
+        manager.push(a);
         notifyTextObservers(TextObserver::updateText);
     }
 
     public List<String> deleteRange(LocationRange range) {
-        return deleteRange(range, true);
+        //return deleteRange(range, true);
+        EditAction a = new DeleteRangeAction(this, range);
+        a.executeDo();
+        manager.push(a);
+        notifyTextObservers(TextObserver::updateText);
+        return null;
     }
 
     private List<String> deleteRange(LocationRange range, boolean notify) {
@@ -281,6 +301,10 @@ public class TextEditorModel {
     /* Methods for iterating over list of lines */
     public List<String> getLines() {
         return lines;
+    }
+
+    public void setLines(List<String> lines) {
+        this.lines = new CopyOnWriteArrayList<>(lines);
     }
 
     public Iterator<String> allLines() {
