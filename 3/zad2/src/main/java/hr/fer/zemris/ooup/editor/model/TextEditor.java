@@ -1,7 +1,8 @@
 package hr.fer.zemris.ooup.editor.model;
 
-import hr.fer.zemris.ooup.editor.observer.CursorObserver;
-import hr.fer.zemris.ooup.editor.observer.TextObserver;
+import hr.fer.zemris.ooup.editor.command.ClearDocumentAction;
+import hr.fer.zemris.ooup.editor.command.EditAction;
+import hr.fer.zemris.ooup.editor.observer.*;
 import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import javax.swing.*;
@@ -11,8 +12,10 @@ import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static java.awt.event.KeyEvent.*;
 
@@ -34,6 +37,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
     private boolean shiftPressed = false;
     private final LocationRange selectionRange = new LocationRange();
     private final ClipboardStack<String> clipboard = new ClipboardStack<>();
+    private final List<TextEditorObserver> editorObservers = new ArrayList<>();
 
     public TextEditor() {
         this("Ovo je tekst\nkoji se nalazi\nu više r.");
@@ -83,6 +87,13 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         model.insert(remove ? clipboard.pop() : clipboard.peek());
     }
 
+    public void deleteSelection() {
+        LocationRange r = selectionRange.copy();
+        selectionRange.setStart(new Location());
+        selectionRange.setEnd(new Location());
+        model.deleteRange(r);
+    }
+
     private void initKeyListener() {
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
@@ -106,13 +117,11 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
                     else model.deleteBefore();
                 } else if (code == VK_ENTER) {
                     showCursorWithoutBlinking = true;
-                } else {
-                    if (!Character.isDigit(e.getKeyChar()) && !Character.isAlphabetic(e.getKeyCode()))
-                        return;
-                    //model.setSelectionRange(selectionRange);
-                    //selectionRange.setStart(new Location());
-                    //selectionRange.setEnd(new Location());
-                    //model.insert(e.getKeyChar());
+                } else if (String.valueOf(e.getKeyChar()).matches("\\w+")) {
+                    model.setSelectionRange(selectionRange);
+                    selectionRange.setStart(new Location());
+                    selectionRange.setEnd(new Location());
+                    model.insert(e.getKeyChar());
                 }
             }
 
@@ -150,20 +159,51 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
     }
 
     public void reset(List<String> lines) {
-        initialRun = true;
         blinkCursor = true;
         showCursorWithoutBlinking = false;
         shiftPressed = false;
         selectionRange.setStart(new Location());
         selectionRange.setEnd(new Location());
-        model.setLines(lines);
+        EditAction a = new ClearDocumentAction(model, lines);
+        a.executeDo();
+        UndoManager.getInstance().push(a);
+        int row = lines.isEmpty() ? 0 : lines.size() - 1;
+        int column = lines.isEmpty() ? -1 : lines.get(row).length() - 1;
+        model.setCursorLocation(new Location(row, column));
         clipboard.clear();
-        UndoManager.getInstance().clear();
     }
 
     public void save(Path file) throws IOException {
         List<String> lines = model.getLines();
         Files.write(file, lines);
+    }
+
+    public void attach(TextEditorObserver observer) {
+        editorObservers.add(observer);
+    }
+
+    private void notifyObservers(Consumer<TextEditorObserver> action) {
+        editorObservers.forEach(action);
+    }
+
+    public void attachCursorObs(CursorObserver observer) {
+        model.attachCursorObserver(observer);
+    }
+
+    public void attachSelectionObs(SelectionObserver observer) {
+        model.attachSelectionObserver(observer);
+    }
+
+    public void attachClipboardObs(ClipboardObserver observer) {
+        clipboard.attach(observer);
+    }
+
+    public void pageStart() {
+        model.moveCursorStart();
+    }
+
+    public void pageEnd() {
+        model.moveCursorEnd();
     }
 
     /* ############################################ */
@@ -183,6 +223,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
     }
 
     private void displayText(Graphics g, FontMetrics metrics) {
+        if (model.getLines().isEmpty()) return;
         Iterator<String> allLinesIterator = model.allLines();
         int y = 0;
         int row = 0;
@@ -203,6 +244,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
             row -= 1;
             int column = model.getLines().get(row).length() - 1;
             model.setCursorLocation(new Location(row, column));
+            notifyObservers(obs -> obs.componentShown(model.getCursorLocation()));
         }
     }
 
@@ -253,11 +295,15 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         model.setCursorSize(metrics.getHeight());
         Location cursorLocation = model.getCursorLocation();
         // map rows and columns to the screen coordinates
-        int row = cursorLocation.getRow();
-        int x1 = metrics.stringWidth(lines.get(row).substring(0, cursorLocation.getColumn() + 1));
         int y1 = (cursorLocation.getRow() + 1) * metrics.getHeight() + metrics.getDescent();
         int y2 = y1 - model.getCursorSize();
-        g.drawLine(x1, y1, x1, y2);
+        if (lines.isEmpty()) {
+            g.drawLine(0, y1, 0, y2);
+        } else {
+            int row = cursorLocation.getRow();
+            int x1 = metrics.stringWidth(lines.get(row).substring(0, cursorLocation.getColumn() + 1));
+            g.drawLine(x1, y1, x1, y2);
+        }
     }
 
 }

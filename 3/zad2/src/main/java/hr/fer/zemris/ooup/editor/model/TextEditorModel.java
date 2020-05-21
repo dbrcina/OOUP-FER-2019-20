@@ -2,6 +2,8 @@ package hr.fer.zemris.ooup.editor.model;
 
 import hr.fer.zemris.ooup.editor.command.*;
 import hr.fer.zemris.ooup.editor.observer.CursorObserver;
+import hr.fer.zemris.ooup.editor.observer.SelectionObserver;
+import hr.fer.zemris.ooup.editor.observer.SelectionState;
 import hr.fer.zemris.ooup.editor.observer.TextObserver;
 import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
@@ -26,6 +28,7 @@ public class TextEditorModel {
     /* List of observers */
     private final List<CursorObserver> cursorObservers = new LinkedList<>();
     private final List<TextObserver> textObservers = new LinkedList<>();
+    private final List<SelectionObserver> selectionObservers = new LinkedList<>();
     /* ----------------- */
 
     private final UndoManager manager = UndoManager.getInstance();
@@ -59,6 +62,7 @@ public class TextEditorModel {
     }
 
     public void moveCursorLeft() {
+        if (lines.isEmpty()) return;
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         if (row == 0 && column < 0) return;
@@ -73,6 +77,7 @@ public class TextEditorModel {
     }
 
     public void moveCursorRight() {
+        if (lines.isEmpty()) return;
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         int size = lines.get(row).length() - 1;
@@ -88,6 +93,7 @@ public class TextEditorModel {
     }
 
     public void moveCursorUp() {
+        if (lines.isEmpty()) return;
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         if (row == 0) return;
@@ -99,6 +105,7 @@ public class TextEditorModel {
     }
 
     public void moveCursorDown() {
+        if (lines.isEmpty()) return;
         int row = cursorLocation.getRow();
         int column = cursorLocation.getColumn();
         if (row == lines.size() - 1) return;
@@ -108,6 +115,18 @@ public class TextEditorModel {
         Location location = new Location(row, column);
         notifyCursorObservers(obs -> obs.updateCursorLocation(location));
     }
+
+    public void moveCursorStart() {
+        notifyCursorObservers(obs -> obs.updateCursorLocation(new Location(0, -1)));
+    }
+
+    public void moveCursorEnd() {
+        int row = lines.size() - 1;
+        String line = lines.get(row);
+        int column = line.length() - 1;
+        notifyCursorObservers(obs -> obs.updateCursorLocation(new Location(row, column)));
+    }
+
     /* ------------------------------------ */
 
     /* ################################################ */
@@ -125,6 +144,7 @@ public class TextEditorModel {
     }
 
     public List<String> insert(char[] data) {
+        if (lines.isEmpty()) return null;
         List<String> deleted = new ArrayList<>();
         if (!selectionRange.equals(new LocationRange())) {
             deleted.addAll(selectedText(selectionRange, false));
@@ -261,6 +281,8 @@ public class TextEditorModel {
     public void setSelectionRange(LocationRange range) {
         selectionRange.setStart(range.getStart());
         selectionRange.setEnd(range.getEnd());
+        notifySelectionObservers(obs -> obs.selectionUpdated(selectionRange.equals(new LocationRange())
+                ? SelectionState.EMPTY : SelectionState.NOT_EMPTY));
     }
     /* ################################################ */
 
@@ -288,6 +310,19 @@ public class TextEditorModel {
     private void notifyTextObservers(Consumer<TextObserver> action) {
         textObservers.forEach(action);
     }
+
+    public void attachSelectionObserver(SelectionObserver observer) {
+        selectionObservers.add(observer);
+    }
+
+    public void detachSelectionObserver(SelectionObserver observer) {
+        selectionObservers.remove(observer);
+    }
+
+    private void notifySelectionObservers(Consumer<SelectionObserver> action) {
+        selectionObservers.forEach(action);
+    }
+
     /* ---------------------------------- */
 
     /* ################################################ */

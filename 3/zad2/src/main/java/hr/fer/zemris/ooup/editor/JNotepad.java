@@ -1,18 +1,20 @@
 package hr.fer.zemris.ooup.editor;
 
+import hr.fer.zemris.ooup.editor.model.Location;
 import hr.fer.zemris.ooup.editor.model.TextEditor;
-import hr.fer.zemris.ooup.editor.observer.UndoManagerObserver;
-import hr.fer.zemris.ooup.editor.observer.UndoManagerState;
+import hr.fer.zemris.ooup.editor.observer.*;
 import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -21,6 +23,7 @@ public class JNotepad extends JFrame {
 
     private final TextEditor editor = new TextEditor();
     private final Timer timer = new Timer();
+    private final StatusLabel statusLabel = new StatusLabel(editor);
 
     public JNotepad() {
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -46,23 +49,9 @@ public class JNotepad extends JFrame {
 
     private void initGUI() {
         getContentPane().add(editor);
-        initActions();
         setJMenuBar(createMenuBar());
         getContentPane().add(createToolbar(), BorderLayout.PAGE_START);
-    }
-
-    private void initActions() {
-        cutAction.putValue(Action.NAME, "Cut");
-        cutAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control X"));
-        cutAction.setEnabled(false);
-        copyAction.putValue(Action.NAME, "Copy");
-        copyAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control C"));
-        copyAction.setEnabled(false);
-        pasteAction.putValue(Action.NAME, "Paste");
-        pasteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
-        pasteAction.setEnabled(false);
-        pasteAndTakeAction.putValue(Action.NAME, "Paste and Take");
-        pasteAndTakeAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control shift V"));
+        getContentPane().add(statusLabel, BorderLayout.PAGE_END);
     }
 
     private JMenuBar createMenuBar() {
@@ -70,6 +59,7 @@ public class JNotepad extends JFrame {
         mb.add(fileMenu());
         mb.add(editMenu());
         mb.add(moveMenu());
+        mb.add(pluginsMenu());
         return mb;
     }
 
@@ -89,15 +79,15 @@ public class JNotepad extends JFrame {
         menu.add(new JMenuItem(copyAction));
         menu.add(new JMenuItem(pasteAction));
         menu.add(new JMenuItem(pasteAndTakeAction));
-        menu.add(new JMenuItem("Delete selection"));
-        menu.add(new JMenuItem("Clear document"));
+        menu.add(new JMenuItem(deleteSelectionAction));
+        menu.add(new JMenuItem(clearDocumentAction));
         return menu;
     }
 
     private JMenu moveMenu() {
         JMenu menu = new JMenu("Move");
-        menu.add(new JMenuItem("Cursor to document start"));
-        menu.add(new JMenuItem("Cursor to document end"));
+        menu.add(new JMenuItem(cursorStartAction));
+        menu.add(new JMenuItem(cursorEndAction));
         return menu;
     }
 
@@ -113,14 +103,18 @@ public class JNotepad extends JFrame {
     }
 
     private final Action openAction = new OpenAction(this, editor);
-
     private final Action saveAction = new SaveAction(this, editor);
-
     private final Action exitAction = new ExitAction(this, timer);
-
-    private final Action undoAction = new UndoAction();
-
-    private final Action redoAction = new RedoAction();
+    private final Action undoAction = new UndoAction(editor);
+    private final Action redoAction = new RedoAction(editor);
+    private final Action cutAction = new CutAction(editor);
+    private final Action copyAction = new CopyAction(editor);
+    private final Action pasteAction = new PasteAction(editor);
+    private final Action pasteAndTakeAction = new PasteAndTakeAction(editor);
+    private final Action deleteSelectionAction = new DeleteSelectionAction(editor);
+    private final Action clearDocumentAction = new ClearDocumentAction(editor);
+    private final Action cursorStartAction = new CursorStartAction(editor);
+    private final Action cursorEndAction = new CursorEndAction(editor);
 
     private static class OpenAction extends AbstractAction {
         private final JFrame frame;
@@ -204,9 +198,11 @@ public class JNotepad extends JFrame {
     }
 
     private static class UndoAction extends AbstractAction implements UndoManagerObserver {
+        private final TextEditor editor;
         private final UndoManager manager = UndoManager.getInstance();
 
-        private UndoAction() {
+        private UndoAction(TextEditor editor) {
+            this.editor = editor;
             manager.attachUndoStackObserver(this);
             setEnabled(false);
             putValue(Action.NAME, "Undo");
@@ -221,13 +217,16 @@ public class JNotepad extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             manager.undo();
+            editor.requestFocus();
         }
     }
 
     private static class RedoAction extends AbstractAction implements UndoManagerObserver {
+        private final TextEditor editor;
         private final UndoManager manager = UndoManager.getInstance();
 
-        private RedoAction() {
+        private RedoAction(TextEditor editor) {
+            this.editor = editor;
             manager.attachRedoStackObserver(this);
             setEnabled(false);
             putValue(Action.NAME, "Redo");
@@ -242,32 +241,193 @@ public class JNotepad extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             manager.redo();
+            editor.requestFocus();
         }
     }
 
-    private final Action cutAction = new AbstractAction() {
+    private static class CutAction extends AbstractAction implements SelectionObserver {
+        private final TextEditor editor;
+
+        private CutAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Cut");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control X"));
+            setEnabled(false);
+            editor.attachSelectionObs(this);
+        }
+
+        @Override
+        public void selectionUpdated(SelectionState state) {
+            setEnabled(state == SelectionState.NOT_EMPTY);
+        }
+
+        @Override
         public void actionPerformed(ActionEvent e) {
             editor.cut();
+            editor.requestFocus();
         }
-    };
+    }
 
-    private final Action copyAction = new AbstractAction() {
+    private static class CopyAction extends AbstractAction implements SelectionObserver {
+        private final TextEditor editor;
+
+        private CopyAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Copy");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control C"));
+            setEnabled(false);
+            editor.attachSelectionObs(this);
+        }
+
+        @Override
+        public void selectionUpdated(SelectionState state) {
+            setEnabled(state == SelectionState.NOT_EMPTY);
+        }
+
+        @Override
         public void actionPerformed(ActionEvent e) {
             editor.copy();
+            editor.requestFocus();
         }
-    };
+    }
 
-    private final Action pasteAction = new AbstractAction() {
+    private static class PasteAction extends AbstractAction implements ClipboardObserver {
+        private final TextEditor editor;
+
+        private PasteAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Paste");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control V"));
+            setEnabled(false);
+            editor.attachClipboardObs(this);
+        }
+
+        @Override
+        public void updateClipboard(ClipboardState state) {
+            setEnabled(state == ClipboardState.STACK_NOT_EMPTY);
+        }
+
+        @Override
         public void actionPerformed(ActionEvent e) {
             editor.paste();
+            editor.requestFocus();
         }
-    };
+    }
 
-    private final Action pasteAndTakeAction = new AbstractAction() {
+    private static class PasteAndTakeAction extends AbstractAction implements ClipboardObserver {
+        private final TextEditor editor;
+
+        private PasteAndTakeAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Paste and Take");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control shift V"));
+            setEnabled(false);
+            editor.attachClipboardObs(this);
+        }
+
+        @Override
+        public void updateClipboard(ClipboardState state) {
+            setEnabled(state == ClipboardState.STACK_NOT_EMPTY);
+        }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             editor.pasteAndTake();
+            editor.requestFocus();
         }
-    };
+    }
+
+    private static class DeleteSelectionAction extends AbstractAction implements SelectionObserver {
+        private final TextEditor editor;
+
+        private DeleteSelectionAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Delete selection");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control Q"));
+            setEnabled(false);
+            editor.attachSelectionObs(this);
+        }
+
+        @Override
+        public void selectionUpdated(SelectionState state) {
+            setEnabled(state == SelectionState.NOT_EMPTY);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            editor.deleteSelection();
+            editor.requestFocus();
+        }
+    }
+
+    private static class ClearDocumentAction extends AbstractAction {
+        private final TextEditor editor;
+
+        private ClearDocumentAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Clear document");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke("control L"));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            editor.reset(new ArrayList<>());
+        }
+    }
+
+    private static class CursorStartAction extends AbstractAction {
+        private final TextEditor editor;
+
+        private CursorStartAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Cursor to document start");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_HOME, 0));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            editor.pageStart();
+        }
+    }
+
+    private static class CursorEndAction extends AbstractAction {
+        private final TextEditor editor;
+
+        private CursorEndAction(TextEditor editor) {
+            this.editor = editor;
+            putValue(Action.NAME, "Cursor to document end");
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_END, 0));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            editor.pageEnd();
+        }
+    }
+
+    private static class StatusLabel extends JLabel implements CursorObserver, TextEditorObserver {
+        private final TextEditor editor;
+
+        private StatusLabel(TextEditor editor) {
+            this.editor = editor;
+            editor.attach(this);
+            editor.attachCursorObs(this);
+        }
+
+        @Override
+        public void updateCursorLocation(Location location) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Line: ").append(location.getRow() + 1).append(", ");
+            sb.append("Column: ").append(location.getColumn() + 2);
+            setText(sb.toString());
+            SwingUtilities.invokeLater(this::repaint);
+        }
+
+        @Override
+        public void componentShown(Location location) {
+            updateCursorLocation(location);
+        }
+
+    }
 
 }

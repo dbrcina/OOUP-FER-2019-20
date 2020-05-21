@@ -1,6 +1,7 @@
 package hr.fer.zemris.ooup.editor.model;
 
 import hr.fer.zemris.ooup.editor.observer.ClipboardObserver;
+import hr.fer.zemris.ooup.editor.observer.ClipboardState;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -14,12 +15,13 @@ public class ClipboardStack<T> {
 
     public void push(T text) {
         texts.push(text);
-        notifyObservers(ClipboardObserver::updateClipboard);
+        notifyObservers(obs -> obs.updateClipboard(ClipboardState.STACK_NOT_EMPTY));
     }
 
     public T pop() {
         T text = texts.pop();
-        notifyObservers(ClipboardObserver::updateClipboard);
+        notifyObservers(obs -> obs.updateClipboard(isEmpty()
+                ? ClipboardState.STACK_EMPTY : ClipboardState.STACK_NOT_EMPTY));
         return text;
     }
 
@@ -33,7 +35,7 @@ public class ClipboardStack<T> {
 
     public void clear() {
         texts.clear();
-        notifyObservers(ClipboardObserver::updateClipboard);
+        notifyObservers(obs -> obs.updateClipboard(ClipboardState.STACK_EMPTY));
     }
 
     public void attach(ClipboardObserver observer) {
