@@ -3,6 +3,8 @@ package hr.fer.zemris.ooup.editor;
 import hr.fer.zemris.ooup.editor.model.Location;
 import hr.fer.zemris.ooup.editor.model.TextEditor;
 import hr.fer.zemris.ooup.editor.observer.*;
+import hr.fer.zemris.ooup.editor.plugin.Plugin;
+import hr.fer.zemris.ooup.editor.plugin.PluginProvider;
 import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import javax.swing.*;
@@ -14,10 +16,9 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
 import java.util.Timer;
-import java.util.TimerTask;
 
 public class JNotepad extends JFrame {
 
@@ -88,6 +89,24 @@ public class JNotepad extends JFrame {
         JMenu menu = new JMenu("Move");
         menu.add(new JMenuItem(cursorStartAction));
         menu.add(new JMenuItem(cursorEndAction));
+        return menu;
+    }
+
+    private JMenu pluginsMenu() {
+        JMenu menu = new JMenu("Plugins");
+        Iterator<Plugin> pluginIterator = PluginProvider.getInstance().getPlugins();
+        while (pluginIterator.hasNext()) {
+            Plugin p = pluginIterator.next();
+            Action a = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    p.execute(editor.getModel(), UndoManager.getInstance(), editor.getClipboard());
+                }
+            };
+            a.putValue(Action.NAME, p.getName());
+            a.putValue(Action.SHORT_DESCRIPTION, p.getDescription());
+            menu.add(new JMenuItem(a));
+        }
         return menu;
     }
 
@@ -406,10 +425,8 @@ public class JNotepad extends JFrame {
     }
 
     private static class StatusLabel extends JLabel implements CursorObserver, TextEditorObserver {
-        private final TextEditor editor;
 
         private StatusLabel(TextEditor editor) {
-            this.editor = editor;
             editor.attach(this);
             editor.attachCursorObs(this);
         }

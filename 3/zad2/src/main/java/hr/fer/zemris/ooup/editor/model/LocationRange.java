@@ -4,6 +4,8 @@ import java.util.Objects;
 
 public class LocationRange {
 
+    public static final LocationRange ZERO = new LocationRange();
+
     private Location start;
     private Location end;
 
@@ -17,19 +19,19 @@ public class LocationRange {
     }
 
     public Location getStart() {
-        return start.copy();
+        return start;
     }
 
     public void setStart(Location start) {
-        this.start = start.copy();
+        this.start = start;
     }
 
     public Location getEnd() {
-        return end.copy();
+        return end;
     }
 
     public void setEnd(Location end) {
-        this.end = end.copy();
+        this.end = end;
     }
 
     public LocationRange copy() {

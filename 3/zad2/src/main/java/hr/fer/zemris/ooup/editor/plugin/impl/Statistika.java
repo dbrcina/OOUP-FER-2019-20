@@ -1,18 +1,15 @@
-package hr.fer.zemris.ooup.editor.plugin;
+package hr.fer.zemris.ooup.editor.plugin.impl;
 
 import hr.fer.zemris.ooup.editor.model.ClipboardStack;
 import hr.fer.zemris.ooup.editor.model.TextEditorModel;
+import hr.fer.zemris.ooup.editor.plugin.Plugin;
 import hr.fer.zemris.ooup.editor.singleton.UndoManager;
 
 import javax.swing.*;
 
 public class Statistika implements Plugin {
 
-    private final String name;
-
-    public Statistika(String name) {
-        this.name = name;
-    }
+    private final String name = "Statistics";
 
     @Override
     public String getName() {
@@ -33,7 +30,7 @@ public class Statistika implements Plugin {
         for (String line : model.getLines()) {
             rows++;
             String[] parts = line.split("\\s+");
-            words = parts.length;
+            words += parts.length;
             for (String part : parts) {
                 for (char c : part.toCharArray()) {
                     if (Character.isLetter(c)) letters++;
@@ -46,4 +43,5 @@ public class Statistika implements Plugin {
         sb.append("Broj slova: ").append(letters).append(", ");
         JOptionPane.showMessageDialog(null, sb.toString());
     }
+
 }

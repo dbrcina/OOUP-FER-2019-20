@@ -15,21 +15,15 @@ public class TextEditorModel {
 
     private static final String LINE_SEPARATOR = "\\r?\\n";
 
-    /* List of lines of text */
     private List<String> lines = new CopyOnWriteArrayList<>();
-    /* --------------------- */
 
-    /* Cursors data */
     private final Location cursorLocation = new Location();
     private int cursorSize;
     private final LocationRange selectionRange = new LocationRange();
-    /* ------------ */
 
-    /* List of observers */
     private final List<CursorObserver> cursorObservers = new LinkedList<>();
     private final List<TextObserver> textObservers = new LinkedList<>();
     private final List<SelectionObserver> selectionObservers = new LinkedList<>();
-    /* ----------------- */
 
     private final UndoManager manager = UndoManager.getInstance();
 
@@ -144,8 +138,15 @@ public class TextEditorModel {
     }
 
     public List<String> insert(char[] data) {
-        if (lines.isEmpty()) return null;
         List<String> deleted = new ArrayList<>();
+        if (lines.isEmpty()) {
+            String line = String.valueOf(data);
+            lines.add(line);
+            Location l = new Location(0, line.length() - 1);
+            notifyTextObservers(TextObserver::updateText);
+            notifyCursorObservers(obs -> obs.updateCursorLocation(l));
+            return deleted;
+        }
         if (!selectionRange.equals(new LocationRange())) {
             deleted.addAll(selectedText(selectionRange, false));
         }
@@ -167,10 +168,12 @@ public class TextEditorModel {
         }
         String newChar = String.valueOf(data, start, data.length - start);
         if (!newChar.isEmpty()) {
-            lines.set(row, line.substring(0, column + 1) + newChar);
+            lines.set(row, line.substring(0, column + 1) + newChar + line.substring(column + 1));
             cursorLocation.setColumn(column + newChar.length());
         }
+        Location l = cursorLocation.copy();
         notifyTextObservers(TextObserver::updateText);
+        notifyCursorObservers(obs -> obs.updateCursorLocation(l));
         return deleted;
     }
 
@@ -188,6 +191,7 @@ public class TextEditorModel {
         a.executeDo();
         manager.push(a);
         notifyTextObservers(TextObserver::updateText);
+        notifyCursorObservers(obs -> obs.updateCursorLocation(cursorLocation));
     }
 
     /* ---------------------------------- */
@@ -209,6 +213,7 @@ public class TextEditorModel {
         a.executeDo();
         manager.push(a);
         notifyTextObservers(TextObserver::updateText);
+        notifyCursorObservers(obs -> obs.updateCursorLocation(cursorLocation));
     }
 
     public List<String> deleteRange(LocationRange range) {
@@ -217,6 +222,7 @@ public class TextEditorModel {
         a.executeDo();
         manager.push(a);
         notifyTextObservers(TextObserver::updateText);
+        notifyCursorObservers(obs -> obs.updateCursorLocation(cursorLocation));
         return null;
     }
 
@@ -295,7 +301,7 @@ public class TextEditorModel {
         cursorObservers.remove(observer);
     }
 
-    private void notifyCursorObservers(Consumer<CursorObserver> action) {
+    public void notifyCursorObservers(Consumer<CursorObserver> action) {
         cursorObservers.forEach(action);
     }
 
@@ -307,7 +313,7 @@ public class TextEditorModel {
         textObservers.remove(observer);
     }
 
-    private void notifyTextObservers(Consumer<TextObserver> action) {
+    public void notifyTextObservers(Consumer<TextObserver> action) {
         textObservers.forEach(action);
     }
 

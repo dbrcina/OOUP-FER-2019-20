@@ -72,6 +72,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         selected.forEach(s -> sb.append(s).append("\n"));
         sb.setLength(sb.length() - 1);
         clipboard.push(sb.toString());
+        model.notifyTextObservers(TextObserver::updateText);
     }
 
     public void paste() {
@@ -99,7 +100,9 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
             public void keyPressed(KeyEvent e) {
                 int code = e.getKeyCode();
                 if (code == VK_SHIFT) {
-                    selectionRange.setStart(model.getCursorLocation());
+                    if (selectionRange.equals(new LocationRange())) {
+                        selectionRange.setStart(model.getCursorLocation());
+                    }
                     shiftPressed = true;
                 } else if (cursorKeyCodes.contains(code)) {
                     showCursorWithoutBlinking = true;
@@ -115,13 +118,16 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
                         model.deleteRange(r);
                     } else if (code == VK_DELETE) model.deleteAfter();
                     else model.deleteBefore();
-                } else if (code == VK_ENTER) {
-                    showCursorWithoutBlinking = true;
-                } else if (String.valueOf(e.getKeyChar()).matches("\\w+")) {
-                    model.setSelectionRange(selectionRange);
-                    selectionRange.setStart(new Location());
-                    selectionRange.setEnd(new Location());
-                    model.insert(e.getKeyChar());
+                } else {
+                    char c = e.getKeyChar();
+                    if (String.valueOf(c).matches("[\\w,.?!:-]+")
+                            || Character.isSpaceChar(c) || code == VK_ENTER) {
+                        if (code == VK_ENTER) showCursorWithoutBlinking = true;
+                        model.setSelectionRange(selectionRange);
+                        selectionRange.setStart(new Location());
+                        selectionRange.setEnd(new Location());
+                        model.insert(e.getKeyChar());
+                    }
                 }
             }
 
@@ -171,6 +177,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         int column = lines.isEmpty() ? -1 : lines.get(row).length() - 1;
         model.setCursorLocation(new Location(row, column));
         clipboard.clear();
+        model.notifyCursorObservers(obs -> obs.updateCursorLocation(model.getCursorLocation()));
     }
 
     public void save(Path file) throws IOException {
@@ -204,6 +211,14 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
 
     public void pageEnd() {
         model.moveCursorEnd();
+    }
+
+    public TextEditorModel getModel() {
+        return model;
+    }
+
+    public ClipboardStack<String> getClipboard() {
+        return clipboard;
     }
 
     /* ############################################ */
