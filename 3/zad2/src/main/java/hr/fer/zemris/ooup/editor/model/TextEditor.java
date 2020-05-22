@@ -173,11 +173,7 @@ public class TextEditor extends JComponent implements CursorObserver, TextObserv
         EditAction a = new ClearDocumentAction(model, lines);
         a.executeDo();
         UndoManager.getInstance().push(a);
-        int row = lines.isEmpty() ? 0 : lines.size() - 1;
-        int column = lines.isEmpty() ? -1 : lines.get(row).length() - 1;
-        model.setCursorLocation(new Location(row, column));
         clipboard.clear();
-        model.notifyCursorObservers(obs -> obs.updateCursorLocation(model.getCursorLocation()));
     }
 
     public void save(Path file) throws IOException {
