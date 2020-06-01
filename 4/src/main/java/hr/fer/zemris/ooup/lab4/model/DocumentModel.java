@@ -51,6 +51,7 @@ public class DocumentModel {
     // Dodavanje objekta u dokument (pazite je li već selektiran; registrirajte model kao promatrača)
     public void addGraphicalObject(GraphicalObject obj) {
         objects.add(obj);
+        if (obj.isSelected()) selectedObjects.add(obj);
         obj.addGraphicalObjectListener(goListener);
         notifyListeners();
     }

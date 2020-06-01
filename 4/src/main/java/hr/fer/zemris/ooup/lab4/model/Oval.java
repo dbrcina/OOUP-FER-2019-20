@@ -56,8 +56,8 @@ public class Oval extends AbstractGraphicalObject {
         Point downHP = getHotPoint(1);
         int a = rightHP.getX() - downHP.getX();
         int b = downHP.getY() - rightHP.getY();
-        int centerX = rightHP.getX();
-        int centerY = downHP.getY();
+        int centerX = downHP.getX();
+        int centerY = rightHP.getY();
         Point[] points = new Point[NUM_OF_POINTS];
         for (int i = 0; i < NUM_OF_POINTS; i++) {
             double t = 2 * Math.PI / NUM_OF_POINTS * i;

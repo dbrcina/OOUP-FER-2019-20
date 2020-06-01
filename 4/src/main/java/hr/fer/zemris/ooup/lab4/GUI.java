@@ -4,6 +4,7 @@ import hr.fer.zemris.ooup.lab4.model.DocumentModel;
 import hr.fer.zemris.ooup.lab4.model.GraphicalObject;
 import hr.fer.zemris.ooup.lab4.renderer.G2DRenderer;
 import hr.fer.zemris.ooup.lab4.renderer.Renderer;
+import hr.fer.zemris.ooup.lab4.state.AddShapeState;
 import hr.fer.zemris.ooup.lab4.state.IdleState;
 import hr.fer.zemris.ooup.lab4.state.State;
 import hr.fer.zemris.ooup.lab4.util.Point;
@@ -24,7 +25,7 @@ public class GUI extends JFrame {
         this.objects = objects;
         this.model = new DocumentModel();
         this.currentState = new IdleState();
-        this.canvas = new Canvas(model, currentState);
+        this.canvas = new Canvas();
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setTitle("Program za uređivanje vektorskih crteža");
@@ -52,7 +53,11 @@ public class GUI extends JFrame {
 
                 @Override
                 public void actionPerformed(ActionEvent e) {
-
+                    String shapeName = (String) getValue(NAME);
+                    GraphicalObject object = objects.stream()
+                            .filter(obj -> obj.getShapeName().equals(shapeName))
+                            .findFirst().get();
+                    currentState = new AddShapeState(model, object);
                 }
             };
             toolBar.add(a);
@@ -60,16 +65,13 @@ public class GUI extends JFrame {
         return toolBar;
     }
 
-    private static class Canvas extends JComponent {
-        private final DocumentModel model;
-        private State currentState;
-
-        private Canvas(DocumentModel model, State currentState) {
-            this.model = model;
-            this.currentState = currentState;
+    private class Canvas extends JComponent {
+        private Canvas() {
+            model.addDocumentModelListener(this::repaint);
             registerKeyListener();
             registerMouseListener();
             registerMouseMotionListener();
+            requestFocus();
         }
 
         private void registerMouseListener() {
@@ -130,6 +132,8 @@ public class GUI extends JFrame {
                 currentState.afterDraw(r, obj);
             });
             currentState.afterDraw(r);
+            requestFocus();
         }
     }
+
 }
