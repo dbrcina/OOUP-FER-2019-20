@@ -5,6 +5,7 @@ import hr.fer.zemris.ooup.lab4.util.GeometryUtil;
 import hr.fer.zemris.ooup.lab4.util.Point;
 import hr.fer.zemris.ooup.lab4.util.Rectangle;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
 
@@ -26,8 +27,8 @@ public class Oval extends AbstractGraphicalObject {
         Point downHP = getHotPoint(1);
         int width = 2 * (rightHP.getX() - downHP.getX());
         int height = 2 * (downHP.getY() - rightHP.getY());
-        int x = width - rightHP.getX();
-        int y = height - downHP.getY();
+        int x = rightHP.getX() - width;
+        int y = downHP.getY() - height;
         return new Rectangle(x, y, width, height);
     }
 
@@ -37,14 +38,14 @@ public class Oval extends AbstractGraphicalObject {
         Point downHP = getHotPoint(1);
         int a = rightHP.getX() - downHP.getX();
         int b = downHP.getY() - rightHP.getY();
-        int centerX = rightHP.getX();
-        int centerY = downHP.getY();
+        int centerX = downHP.getX();
+        int centerY = rightHP.getY();
         double result = Math.pow(mousePoint.getX() - centerX, 2) / (a * a)
                 + Math.pow(mousePoint.getY() - centerY, 2) / (b * b);
         if (result <= 1.0) {
             return 0.0;
         }
-        double distance = -1;
+        double distance = Double.MAX_VALUE;
         for (Point p : points()) {
             distance = Math.min(distance, GeometryUtil.distanceFromPoint(mousePoint, p));
         }
@@ -85,17 +86,22 @@ public class Oval extends AbstractGraphicalObject {
 
     @Override
     public String getShapeID() {
-        return null;
+        return "@OVAL";
     }
 
     @Override
     public void load(Stack<GraphicalObject> stack, String data) {
-
+        int[] points = Arrays.stream(data.split(" ")).mapToInt(Integer::parseInt).toArray();
+        stack.push(new Oval(new Point(points[0], points[1]), new Point(points[2], points[3])));
     }
 
     @Override
     public void save(List<String> rows) {
-
+        Point rightHP = getHotPoint(0);
+        Point downHP = getHotPoint(1);
+        rows.add(String.format(
+                "%s %d %d %d %d",
+                getShapeID(), rightHP.getX(), rightHP.getY(), downHP.getX(), downHP.getY()));
     }
 
 }

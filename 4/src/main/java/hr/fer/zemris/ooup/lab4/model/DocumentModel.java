@@ -33,8 +33,12 @@ public class DocumentModel {
 
         @Override
         public void graphicalObjectSelectionChanged(GraphicalObject go) {
-            if (go.isSelected()) selectedObjects.add(go);
-            else selectedObjects.remove(go);
+            if (go.isSelected()) {
+                if (!selectedObjects.contains(go))
+                    selectedObjects.add(go);
+            } else {
+                selectedObjects.remove(go);
+            }
             notifyListeners();
         }
     };
@@ -94,16 +98,18 @@ public class DocumentModel {
     public void increaseZ(GraphicalObject go) {
         int objIndex = objects.indexOf(go);
         int nextIndex = objIndex + 1;
-        if (nextIndex >= objects.size()) nextIndex = 0;
+        if (nextIndex >= objects.size()) return;
         Collections.swap(objects, objIndex, nextIndex);
+        notifyListeners();
     }
 
     // Pomakni predani objekt u listi objekata na jedno mjesto ranije...
     public void decreaseZ(GraphicalObject go) {
         int objIndex = objects.indexOf(go);
         int nextIndex = objIndex - 1;
-        if (nextIndex < 0) nextIndex = objects.size() - 1;
+        if (nextIndex < 0) return;
         Collections.swap(objects, objIndex, nextIndex);
+        notifyListeners();
     }
 
     // Pronađi postoji li u modelu neki objekt koji klik na točku koja je
@@ -112,7 +118,7 @@ public class DocumentModel {
     // SELECTION_PROXIMITY. Status selektiranosti objekta ova metoda NE dira.
     public GraphicalObject findSelectedGraphicalObject(Point mousePoint) {
         for (GraphicalObject obj : objects) {
-            if (Math.abs(obj.selectionDistance(mousePoint)) <= SELECTION_PROXIMITY) {
+            if (obj.selectionDistance(mousePoint) <= SELECTION_PROXIMITY) {
                 return obj;
             }
         }
@@ -132,6 +138,13 @@ public class DocumentModel {
             }
         }
         return -1;
+    }
+
+    // Deselektira sve selektirane objekte
+    public void deselectAll() {
+        while (!selectedObjects.isEmpty()) {
+            selectedObjects.get(0).setSelected(false);
+        }
     }
 
 }
