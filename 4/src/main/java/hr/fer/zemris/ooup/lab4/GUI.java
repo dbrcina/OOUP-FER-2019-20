@@ -193,7 +193,7 @@ public class GUI extends JFrame {
             registerKeyListener();
             registerMouseListener();
             registerMouseMotionListener();
-            requestFocus();
+            requestFocusInWindow();
         }
 
         private void registerMouseListener() {
@@ -254,7 +254,7 @@ public class GUI extends JFrame {
                 currentState.afterDraw(r, obj);
             });
             currentState.afterDraw(r);
-            requestFocus();
+            requestFocusInWindow();
         }
     }
 
