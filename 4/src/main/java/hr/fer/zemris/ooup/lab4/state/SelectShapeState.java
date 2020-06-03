@@ -18,6 +18,7 @@ public class SelectShapeState extends IdleState {
     private final DocumentModel model;
     private GraphicalObject selectedObj;
     private int indexOfSelectedHotPoint = -1;
+    private Point previousPoint;
 
     public SelectShapeState(DocumentModel model) {
         this.model = model;
@@ -30,6 +31,7 @@ public class SelectShapeState extends IdleState {
         }
         selectedObj = model.findSelectedGraphicalObject(mousePoint);
         if (selectedObj != null) {
+            previousPoint = mousePoint;
             selectedObj.setSelected(!selectedObj.isSelected());
             indexOfSelectedHotPoint = model.findSelectedHotPoint(selectedObj, mousePoint);
             if (indexOfSelectedHotPoint >= 0) {
@@ -45,13 +47,18 @@ public class SelectShapeState extends IdleState {
         if (indexOfSelectedHotPoint >= 0) {
             selectedObj.setHotPointSelected(indexOfSelectedHotPoint, false);
             indexOfSelectedHotPoint = -1;
+            previousPoint = null;
         }
     }
 
     @Override
     public void mouseDragged(Point mousePoint) {
+        if (selectedObj == null) return;
         if (indexOfSelectedHotPoint >= 0) {
             selectedObj.setHotPoint(indexOfSelectedHotPoint, mousePoint);
+        } else {
+            selectedObj.translate(mousePoint.difference(previousPoint));
+            previousPoint = mousePoint;
         }
     }
 
