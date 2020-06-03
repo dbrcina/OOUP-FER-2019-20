@@ -2,7 +2,6 @@ package hr.fer.zemris.ooup.lab4.model;
 
 import hr.fer.zemris.ooup.lab4.listener.DocumentModelListener;
 import hr.fer.zemris.ooup.lab4.listener.GraphicalObjectListener;
-import hr.fer.zemris.ooup.lab4.util.GeometryUtil;
 import hr.fer.zemris.ooup.lab4.util.Point;
 
 import java.util.ArrayList;
@@ -34,8 +33,9 @@ public class DocumentModel {
         @Override
         public void graphicalObjectSelectionChanged(GraphicalObject go) {
             if (go.isSelected()) {
-                if (!selectedObjects.contains(go))
+                if (!selectedObjects.contains(go)) {
                     selectedObjects.add(go);
+                }
             } else {
                 selectedObjects.remove(go);
             }
@@ -132,8 +132,7 @@ public class DocumentModel {
     // se pri tome NE dira.
     public int findSelectedHotPoint(GraphicalObject object, Point mousePoint) {
         for (int i = 0; i < object.getNumberOfHotPoints(); i++) {
-            Point hotPoint = object.getHotPoint(i);
-            if (GeometryUtil.distanceFromPoint(hotPoint, mousePoint) <= SELECTION_PROXIMITY) {
+            if (object.getHotPointDistance(i, mousePoint) <= SELECTION_PROXIMITY) {
                 return i;
             }
         }

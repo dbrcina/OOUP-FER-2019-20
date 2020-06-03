@@ -21,16 +21,16 @@ public class LineSegment extends AbstractGraphicalObject {
 
     @Override
     public Rectangle getBoundingBox() {
-        Point sPoint = getHotPoint(0);
-        Point ePoint = getHotPoint(1);
-        int xStart = sPoint.getX();
-        int xEnd = ePoint.getX();
-        int yStart = sPoint.getY();
-        int yEnd = ePoint.getY();
-        int x = Math.min(xStart, xEnd);
-        int y = Math.min(yStart, yEnd);
-        int width = Math.abs(xEnd - xStart);
-        int height = Math.abs(yEnd - yStart);
+        Point s = getHotPoint(0);
+        Point e = getHotPoint(1);
+        int xs = s.getX();
+        int ys = s.getY();
+        int xe = e.getX();
+        int ye = e.getY();
+        int x = Math.min(xs, xe);
+        int y = Math.min(ys, ye);
+        int width = Math.abs(xe - xs);
+        int height = Math.abs(ye - ys);
         return new Rectangle(x, y, width, height);
     }
 
@@ -61,7 +61,7 @@ public class LineSegment extends AbstractGraphicalObject {
 
     @Override
     public void load(Stack<GraphicalObject> stack, String data) {
-        int[] points = Arrays.stream(data.split(" ")).mapToInt(Integer::parseInt).toArray();
+        int[] points = Arrays.stream(data.split("\\s+")).mapToInt(Integer::parseInt).toArray();
         stack.push(new LineSegment(new Point(points[0], points[1]), new Point(points[2], points[3])));
     }
 
@@ -69,8 +69,7 @@ public class LineSegment extends AbstractGraphicalObject {
     public void save(List<String> rows) {
         Point s = getHotPoint(0);
         Point e = getHotPoint(1);
-        rows.add(String.format(
-                "%s %d %d %d %d",
+        rows.add(String.format("%s %d %d %d %d",
                 getShapeID(), s.getX(), s.getY(), e.getX(), e.getY()));
     }
 

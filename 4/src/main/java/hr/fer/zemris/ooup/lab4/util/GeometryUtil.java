@@ -4,8 +4,9 @@ public class GeometryUtil {
 
     // izračunaj euklidsku udaljenost između dvije točke ...
     public static double distanceFromPoint(Point point1, Point point2) {
-        double xDiff = point1.getX() - point2.getX();
-        double yDiff = point1.getY() - point2.getY();
+        Point difference = point1.difference(point2);
+        int xDiff = difference.getX();
+        int yDiff = difference.getY();
         return Math.sqrt(xDiff * xDiff + yDiff * yDiff);
     }
 
@@ -15,10 +16,18 @@ public class GeometryUtil {
     // Ako je točka P "prije" točke S ili "iza" točke E, udaljenost odgovara
     // udaljenosti od P do početne/konačne točke segmenta.
     public static double distanceFromLineSegment(Point s, Point e, Point p) {
-        int a = e.getY() - s.getY();
-        int b = e.getX() - s.getX();
-        int c = e.getX() * s.getY() - e.getY() * s.getX();
-        return Math.abs(a * p.getX() - b * p.getY() + c) / Math.sqrt(a * a + b * b);
+        double distance;
+        int xMin = Math.min(s.getX(), e.getX());
+        int xMax = Math.max(s.getX(), e.getX());
+        if (p.getX() >= xMin && p.getX() <= xMax) {
+            int a = e.getY() - s.getY();
+            int b = e.getX() - s.getX();
+            int c = e.getX() * s.getY() - e.getY() * s.getX();
+            distance = Math.abs(a * p.getX() - b * p.getY() + c) / Math.sqrt(a * a + b * b);
+        } else {
+            distance = Math.min(distanceFromPoint(s, p), distanceFromPoint(e, p));
+        }
+        return distance;
     }
 
 }

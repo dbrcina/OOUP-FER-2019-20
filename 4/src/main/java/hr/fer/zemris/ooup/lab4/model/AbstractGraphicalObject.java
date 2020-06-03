@@ -15,6 +15,7 @@ public abstract class AbstractGraphicalObject implements GraphicalObject {
     private final List<GraphicalObjectListener> listeners = new ArrayList<>();
 
     protected AbstractGraphicalObject(Point[] hotPoints) {
+        if (hotPoints == null) hotPoints = new Point[0];
         this.hotPoints = hotPoints;
         this.hotPointsSelected = new boolean[hotPoints.length];
     }

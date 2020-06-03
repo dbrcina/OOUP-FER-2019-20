@@ -25,17 +25,17 @@ public class GUI extends JFrame {
     private final Canvas canvas;
     private State currentState;
 
-    private final Map<String, GraphicalObject> prototypes;
+    private final Map<String, GraphicalObject> prototypes = new HashMap<>();
 
     public GUI(List<GraphicalObject> objects) {
         this.objects = objects;
         this.model = new DocumentModel();
         this.currentState = new IdleState();
         this.canvas = new Canvas();
-        this.prototypes = new HashMap<>();
 
+        // register prototypes
         objects.forEach(obj -> prototypes.put(obj.getShapeID(), obj));
-        GraphicalObject composite = new CompositeShape(new ArrayList<>(), false);
+        GraphicalObject composite = new CompositeShape(new ArrayList<>());
         prototypes.put(composite.getShapeID(), composite);
 
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
@@ -49,82 +49,23 @@ public class GUI extends JFrame {
     private void initGUI() {
         Container pane = getContentPane();
         pane.setLayout(new BorderLayout());
-
         pane.add(createToolbar(), BorderLayout.PAGE_START);
         pane.add(canvas);
     }
 
     private Component createToolbar() {
         JToolBar toolBar = new JToolBar();
-        Action openAction = new AbstractAction() {
-            {
-                putValue(NAME, "Učitaj");
-            }
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser jfc = new JFileChooser(".");
-                jfc.setDialogTitle("Učitaj");
-                if (jfc.showOpenDialog(GUI.this) != JFileChooser.APPROVE_OPTION) return;
-                Path file = jfc.getSelectedFile().toPath();
-                try {
-                    List<String> lines = Files.readAllLines(file);
-                    Stack<GraphicalObject> stack = new Stack<>();
-                    for (String line : lines) {
-                        String[] parts = line.split(" ", 2);
-                        prototypes.get(parts[0]).load(stack, parts[1]);
-                    }
-                    List<GraphicalObject> beforeObjs = new ArrayList<>(model.list());
-                    beforeObjs.forEach(model::removeGraphicalObject);
-                    stack.forEach(model::addGraphicalObject);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
-            }
-        };
         toolBar.add(openAction);
-        Action saveAction = new AbstractAction() {
-            {
-                putValue(NAME, "Pohrani");
-            }
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser jfc = new JFileChooser(".");
-                jfc.setDialogTitle("Pohrani");
-                if (jfc.showOpenDialog(GUI.this) != JFileChooser.APPROVE_OPTION) return;
-                Path file = jfc.getSelectedFile().toPath();
-                List<String> rows = new ArrayList<>();
-                model.list().forEach(obj -> obj.save(rows));
-                try {
-                    Files.write(file, rows);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
-            }
-        };
         toolBar.add(saveAction);
-        Action exportAction = new AbstractAction() {
-            {
-                putValue(NAME, "SVG Export");
-            }
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser jfc = new JFileChooser(".");
-                jfc.setDialogTitle("Export");
-                if (jfc.showOpenDialog(GUI.this) != JFileChooser.APPROVE_OPTION) return;
-                Path file = jfc.getSelectedFile().toPath();
-                SVGRenderer r = new SVGRenderer(file.toString());
-                model.list().forEach(obj -> obj.render(r));
-                try {
-                    r.close();
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
-            }
-        };
         toolBar.add(exportAction);
+        appendPrototypesToToolbar(toolBar);
+        toolBar.add(selectionAction);
+        toolBar.add(eraserAction);
+        toolBar.add(clearAction);
+        return toolBar;
+    }
+
+    private void appendPrototypesToToolbar(JToolBar toolBar) {
         for (GraphicalObject object : objects) {
             Action a = new AbstractAction() {
                 {
@@ -143,32 +84,108 @@ public class GUI extends JFrame {
             };
             toolBar.add(a);
         }
-        Action selectionAction = new AbstractAction() {
-            {
-                putValue(NAME, "Selektiraj");
-            }
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                currentState.onLeaving();
-                currentState = new SelectShapeState(model);
-            }
-        };
-        toolBar.add(selectionAction);
-        Action eraserAction = new AbstractAction() {
-            {
-                putValue(NAME, "Brisalo");
-            }
-
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                currentState.onLeaving();
-                currentState = new EraserState(model);
-            }
-        };
-        toolBar.add(eraserAction);
-        return toolBar;
     }
+
+    private final Action openAction = new AbstractAction() {
+        {
+            putValue(NAME, "Učitaj");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JFileChooser jfc = new JFileChooser(".");
+            jfc.setDialogTitle("Učitaj");
+            if (jfc.showOpenDialog(GUI.this) != JFileChooser.APPROVE_OPTION) return;
+            Path file = jfc.getSelectedFile().toPath();
+            try {
+                List<String> lines = Files.readAllLines(file);
+                Stack<GraphicalObject> stack = new Stack<>();
+                for (String line : lines) {
+                    String[] parts = line.split("\\s+", 2);
+                    prototypes.get(parts[0]).load(stack, parts[1]);
+                }
+                List<GraphicalObject> currentObjs = new ArrayList<>(model.list());
+                currentObjs.forEach(model::removeGraphicalObject);
+                stack.forEach(model::addGraphicalObject);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        }
+    };
+    private final Action saveAction = new AbstractAction() {
+        {
+            putValue(NAME, "Pohrani");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JFileChooser jfc = new JFileChooser(".");
+            jfc.setDialogTitle("Pohrani");
+            if (jfc.showOpenDialog(GUI.this) != JFileChooser.APPROVE_OPTION) return;
+            Path file = jfc.getSelectedFile().toPath();
+            List<String> rows = new ArrayList<>();
+            model.list().forEach(obj -> obj.save(rows));
+            try {
+                Files.write(file, rows);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        }
+    };
+    private final Action exportAction = new AbstractAction() {
+        {
+            putValue(NAME, "SVG Export");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            JFileChooser jfc = new JFileChooser(".");
+            jfc.setDialogTitle("Export");
+            if (jfc.showOpenDialog(GUI.this) != JFileChooser.APPROVE_OPTION) return;
+            Path file = jfc.getSelectedFile().toPath();
+            SVGRenderer r = new SVGRenderer(file.toString());
+            model.list().forEach(obj -> obj.render(r));
+            try {
+                r.close();
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        }
+    };
+    private final Action selectionAction = new AbstractAction() {
+        {
+            putValue(NAME, "Selektiraj");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            currentState.onLeaving();
+            currentState = new SelectShapeState(model);
+        }
+    };
+    private final Action eraserAction = new AbstractAction() {
+        {
+            putValue(NAME, "Brisalo");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            currentState.onLeaving();
+            currentState = new EraserState(model);
+        }
+    };
+    private final Action clearAction = new AbstractAction() {
+        {
+            putValue(NAME, "Obriši sve");
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            currentState.onLeaving();
+            currentState = new IdleState();
+            model.clear();
+        }
+    };
 
     private class Canvas extends JComponent {
         private Canvas() {

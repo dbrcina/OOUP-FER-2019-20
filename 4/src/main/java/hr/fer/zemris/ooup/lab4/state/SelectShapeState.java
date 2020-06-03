@@ -30,13 +30,18 @@ public class SelectShapeState extends IdleState {
         }
         selectedObj = model.findSelectedGraphicalObject(mousePoint);
         if (selectedObj != null) {
-            selectedObj.setSelected(true);
+            selectedObj.setSelected(!selectedObj.isSelected());
+            indexOfSelectedHotPoint = model.findSelectedHotPoint(selectedObj, mousePoint);
+            if (indexOfSelectedHotPoint >= 0) {
+                if (!selectedObj.isHotPointSelected(indexOfSelectedHotPoint)) {
+                    selectedObj.setHotPointSelected(indexOfSelectedHotPoint, true);
+                }
+            }
         }
     }
 
     @Override
     public void mouseUp(Point mousePoint, boolean shiftDown, boolean ctrlDown) {
-        if (selectedObj == null) return;
         if (indexOfSelectedHotPoint >= 0) {
             selectedObj.setHotPointSelected(indexOfSelectedHotPoint, false);
             indexOfSelectedHotPoint = -1;
@@ -45,17 +50,8 @@ public class SelectShapeState extends IdleState {
 
     @Override
     public void mouseDragged(Point mousePoint) {
-        if (selectedObj == null) return;
         if (indexOfSelectedHotPoint >= 0) {
-            if (!selectedObj.isHotPointSelected(indexOfSelectedHotPoint)) {
-                selectedObj.setHotPointSelected(indexOfSelectedHotPoint, true);
-            }
             selectedObj.setHotPoint(indexOfSelectedHotPoint, mousePoint);
-        } else {
-            indexOfSelectedHotPoint = model.findSelectedHotPoint(selectedObj, mousePoint);
-            if (indexOfSelectedHotPoint >= 0) {
-                selectedObj.setHotPoint(indexOfSelectedHotPoint, mousePoint);
-            }
         }
     }
 
@@ -124,6 +120,7 @@ public class SelectShapeState extends IdleState {
         r.drawLine(topRight, bottomRight);
         r.drawLine(bottomRight, bottomLeft);
         r.drawLine(bottomLeft, topLeft);
+        if (go instanceof CompositeShape) return;
         if (model.getSelectedObjects().size() == 1) {
             int halfPixel = HOT_POINT_PIXEL / 2;
             for (int i = 0; i < go.getNumberOfHotPoints(); i++) {

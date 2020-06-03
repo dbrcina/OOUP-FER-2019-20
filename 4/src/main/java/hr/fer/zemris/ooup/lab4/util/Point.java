@@ -28,8 +28,4 @@ public class Point {
         return new Point(x - p.x, y - p.y);
     }
 
-    public Point copy() {
-        return new Point(x, y);
-    }
-
 }

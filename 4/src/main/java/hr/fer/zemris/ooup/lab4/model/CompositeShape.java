@@ -5,6 +5,7 @@ import hr.fer.zemris.ooup.lab4.util.Point;
 import hr.fer.zemris.ooup.lab4.util.Rectangle;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
@@ -13,9 +14,13 @@ public class CompositeShape extends AbstractGraphicalObject {
     private final List<GraphicalObject> objects;
 
     public CompositeShape(List<GraphicalObject> objects, boolean selected) {
-        super(new Point[0]);
-        this.objects = new ArrayList<>(objects);
+        super(null);
+        this.objects = objects;
         setSelected(selected);
+    }
+
+    public CompositeShape(List<GraphicalObject> objects) {
+        this(objects, false);
     }
 
     public List<GraphicalObject> getObjects() {
@@ -55,12 +60,12 @@ public class CompositeShape extends AbstractGraphicalObject {
 
     @Override
     public String getShapeName() {
-        return null;
+        return "Kompozit";
     }
 
     @Override
     public GraphicalObject duplicate() {
-        return null;
+        return new CompositeShape(new ArrayList<>(objects));
     }
 
     @Override
@@ -76,7 +81,8 @@ public class CompositeShape extends AbstractGraphicalObject {
             objects.add(stack.pop());
             num--;
         }
-        stack.push(new CompositeShape(objects, false));
+        Collections.reverse(objects);
+        stack.push(new CompositeShape(objects));
     }
 
     @Override

@@ -34,14 +34,11 @@ public class Oval extends AbstractGraphicalObject {
 
     @Override
     public double selectionDistance(Point mousePoint) {
-        Point rightHP = getHotPoint(0);
-        Point downHP = getHotPoint(1);
-        int a = rightHP.getX() - downHP.getX();
-        int b = downHP.getY() - rightHP.getY();
-        int centerX = downHP.getX();
-        int centerY = rightHP.getY();
-        double result = Math.pow(mousePoint.getX() - centerX, 2) / (a * a)
-                + Math.pow(mousePoint.getY() - centerY, 2) / (b * b);
+        int a = longHalfAxis();
+        int b = shortHalfAxis();
+        Point center = center();
+        double result = Math.pow(mousePoint.getX() - center.getX(), 2) / (a * a)
+                + Math.pow(mousePoint.getY() - center.getY(), 2) / (b * b);
         if (result <= 1.0) {
             return 0.0;
         }
@@ -53,20 +50,35 @@ public class Oval extends AbstractGraphicalObject {
     }
 
     private Point[] points() {
-        Point rightHP = getHotPoint(0);
-        Point downHP = getHotPoint(1);
-        int a = rightHP.getX() - downHP.getX();
-        int b = downHP.getY() - rightHP.getY();
-        int centerX = downHP.getX();
-        int centerY = rightHP.getY();
+        int a = longHalfAxis();
+        int b = shortHalfAxis();
+        Point center = center();
         Point[] points = new Point[NUM_OF_POINTS];
         for (int i = 0; i < NUM_OF_POINTS; i++) {
             double t = 2 * Math.PI / NUM_OF_POINTS * i;
-            double x = centerX + a * Math.cos(t);
-            double y = centerY + b * Math.sin(t);
+            double x = center.getX() + a * Math.cos(t);
+            double y = center.getY() + b * Math.sin(t);
             points[i] = new Point((int) x, (int) y);
         }
         return points;
+    }
+
+    private int longHalfAxis() {
+        Point rightHP = getHotPoint(0);
+        Point downHP = getHotPoint(1);
+        return rightHP.getX() - downHP.getX();
+    }
+
+    private int shortHalfAxis() {
+        Point rightHP = getHotPoint(0);
+        Point downHP = getHotPoint(1);
+        return downHP.getY() - rightHP.getY();
+    }
+
+    private Point center() {
+        Point rightHP = getHotPoint(0);
+        Point downHP = getHotPoint(1);
+        return new Point(downHP.getX(), rightHP.getY());
     }
 
     @Override
@@ -91,7 +103,7 @@ public class Oval extends AbstractGraphicalObject {
 
     @Override
     public void load(Stack<GraphicalObject> stack, String data) {
-        int[] points = Arrays.stream(data.split(" ")).mapToInt(Integer::parseInt).toArray();
+        int[] points = Arrays.stream(data.split("\\s+")).mapToInt(Integer::parseInt).toArray();
         stack.push(new Oval(new Point(points[0], points[1]), new Point(points[2], points[3])));
     }
 
@@ -99,8 +111,7 @@ public class Oval extends AbstractGraphicalObject {
     public void save(List<String> rows) {
         Point rightHP = getHotPoint(0);
         Point downHP = getHotPoint(1);
-        rows.add(String.format(
-                "%s %d %d %d %d",
+        rows.add(String.format("%s %d %d %d %d",
                 getShapeID(), rightHP.getX(), rightHP.getY(), downHP.getX(), downHP.getY()));
     }
 

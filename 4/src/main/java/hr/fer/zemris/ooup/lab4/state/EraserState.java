@@ -12,8 +12,8 @@ import java.util.Set;
 
 public class EraserState extends IdleState {
 
-    private final DocumentModel model;
     private final List<Point> points = new ArrayList<>();
+    private final DocumentModel model;
 
     public EraserState(DocumentModel model) {
         this.model = model;
@@ -49,4 +49,5 @@ public class EraserState extends IdleState {
     public void onLeaving() {
         model.notifyListeners();
     }
+
 }
